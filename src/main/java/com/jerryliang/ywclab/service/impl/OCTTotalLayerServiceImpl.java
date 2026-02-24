@@ -79,15 +79,15 @@ public class OCTTotalLayerServiceImpl implements OCTTotalLayerService {
         String generateTime = DatetimeConverter.getSYSTime(4);
 
         //設定Excel表頭
-        List<List<String>> header = new ArrayList<>();
+//        List<List<String>> header = new ArrayList<>();
         //欄位名稱
-        header.add(Arrays.asList("Mouse NO.", "-800", "-700", "-600", "-500", "-400", "-300", "-200", "-100", "0",
-                                 "100", "200", "300", "400", "500", "600", "700", "800"));
+//        header.add(Arrays.asList("Mouse NO.", "-800", "-700", "-600", "-500", "-400", "-300", "-200", "-100", "0",
+//                                 "100", "200", "300", "400", "500", "600", "700", "800"));
 
         try {
             //產出Excel檔案
-            XlsxUtil.createOCTTotalLayerXlsxFile(EXCEL_PATH, header, octTotalLayerDataDownloadRequestMapSet, "Times New Roman");
-
+//            XlsxUtil.createOCTTotalLayerXlsxFile(EXCEL_PATH, header, octTotalLayerDataDownloadRequestMapSet, "Times New Roman");
+            XlsxUtil.createProductionOCTTotalLayerXlsxFile(EXCEL_PATH, octTotalLayerDataDownloadRequestMapSet);
             //轉換為Byte
             return XlsxUtil.parseXlsxFileToByte("OCT Total Layer_", generateTime);
         }

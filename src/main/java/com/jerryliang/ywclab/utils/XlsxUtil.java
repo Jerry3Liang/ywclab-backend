@@ -6,6 +6,8 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.xssf.usermodel.DefaultIndexedColorMap;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.springframework.http.HttpHeaders;
@@ -19,6 +21,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.stream.IntStream;
 
 public class XlsxUtil {
 
@@ -347,101 +350,148 @@ public class XlsxUtil {
     /**
      * 產製 OCT Total Layer xlsx 檔
      * @param path: 輸出的 Excel 路徑
-     * @param header: 表頭陣列
      * @param octTotalLayerDataDownloadRequestMapSet: 前端傳來的 Data 內容
-     * @param fontName: 字型名稱
      */
-    public static void createOCTTotalLayerXlsxFile(
+    public static void createProductionOCTTotalLayerXlsxFile(
             String path,
-            List<List<String>> header,
-            Map<String, List<Object>> octTotalLayerDataDownloadRequestMapSet,
-            String fontName
+            Map<String, List<Object>> octTotalLayerDataDownloadRequestMapSet
     ) throws IOException {
 
         SXSSFWorkbook workbook = new SXSSFWorkbook(100);
         SXSSFSheet sheet = workbook.createSheet("Result");
 
-        Map<Integer, Double> columnWidthMultiplier = new HashMap<>();
-        columnWidthMultiplier.put(9, 3.8); // 第 9 列用 3.3 倍
-        columnWidthMultiplier.put(10, 1.9); // 第 10 列用 3.3 倍
-        columnWidthMultiplier.put(11, 1.9); // 第 11 列用 3.3 倍
-        columnWidthMultiplier.put(12, 1.9); // 第 12 列用 3.3 倍
-        columnWidthMultiplier.put(13, 1.9); // 第 13 列用 3.3 倍
-        columnWidthMultiplier.put(14, 1.9); // 第 14 列用 3.3 倍
-        columnWidthMultiplier.put(15, 1.9); // 第 15 列用 3.3 倍
-        columnWidthMultiplier.put(16, 1.9); // 第 16 列用 3.3 倍
-        columnWidthMultiplier.put(17, 1.9); // 第 17 列用 3.3 倍
-        createHeaderAndStyleForExcel(header, fontName, workbook, sheet, columnWidthMultiplier);
-
-        CellStyle contentStyle = createContentAndStyleForExcel(fontName, workbook);
-        CellStyle averageStyle = createContentAverageStyleForExcel(fontName, workbook);
+        sheet.trackAllColumnsForAutoSizing();
 
         //設定內容
         List<String> keys = new ArrayList<>(octTotalLayerDataDownloadRequestMapSet.keySet());
 
+        List<String> groupList = keys.stream()
+                .map(key -> key.substring(0, key.indexOf("_"))).distinct().toList();
+
         int num = 0;
-        int groupMouseCount = 0;
-        double[] sums = new double[17]; // 用於存儲 sum 值，-800~800 總共 17個
+        int groupListCount = 0;
 
-        //將 data 寫入 Excel
-        for (int i = 0; i < keys.size(); i++) {
+        for(int i = 0; i < groupList.size(); i++) {
+            int rowIndex = i + num + groupListCount;
 
-            String key = keys.get(i);
-            String processedKey = key;
-
-            //處理鍵值對，避免無效操作
-            if (key.contains("_")) {
-                processedKey = key.substring(0, key.indexOf("_"));
+            Row row = sheet.getRow(rowIndex);
+            if (row == null) {
+                row = sheet.createRow(rowIndex);
             }
 
-            List<Object> values = octTotalLayerDataDownloadRequestMapSet.get(keys.get(i));
+            String processedKey = groupList.get(i);
 
-            //建立第二列 (Row)
-            Row row = sheet.createRow(i + 1 + num);
-            createCell(row, 0, keys.get(i), contentStyle);
+            //組別那一 Row
+            createStyledCell(workbook, row, 0, "組別：",
+                    "微軟正黑體", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 255, (byte) 255, (byte) 84},
+                    HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                    BorderStyle.NONE, BorderStyle.NONE, BorderStyle.NONE, BorderStyle.NONE,
+                    true, false, false);
+            createStyledCell(workbook, row, 1, groupList.get(i),
+                    "Arial", (short) 12, new byte[] {(byte) 255, (byte) 0, (byte) 0}, new byte[] {(byte) 255, (byte) 255, (byte) 84},
+                    HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                    BorderStyle.NONE, BorderStyle.NONE, BorderStyle.NONE, BorderStyle.NONE,
+                    true, false, false);
 
-            for(int j = 0; j < values.size(); j++){
-                createCell(row, (j + 1), values.get(j), contentStyle);
+            //流水編號那一 Row
+            createStyledCell(workbook, sheet.createRow(i + 1 + num + groupListCount), 0, "流水編號",
+                    "微軟正黑體", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 217, (byte) 217, (byte) 217},
+                    HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                    BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                    true, false, false);
+
+            int groupMouseCount = 1;
+
+            for (String key : keys) {
+                int row3Index = i + 1 + num + groupListCount;
+                Row row3 = sheet.getRow(row3Index);
+                String comparedKey = key.substring(0, key.indexOf("_"));
+                if (comparedKey.equals(groupList.get(i))) {
+                    createStyledCell(workbook, row3, groupMouseCount, key,
+                            "Arial", (short) 12, new byte[]{(byte) 0, (byte) 0, (byte) 0}, new byte[]{(byte) 217, (byte) 217, (byte) 217},
+                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            true, false, false);
+
+                    groupMouseCount++;
+                }
             }
 
-            if (i < keys.size() - 1) {
-                String keyNext = keys.get(i + 1);
-                if (keyNext.contains("_")) {
-                    keyNext = keyNext.substring(0, keyNext.indexOf("_"));
+            //耳標+哪眼(自行填入) 那一 Row
+            createStyledCell(workbook, sheet.createRow(i + 2 + num + groupListCount), 0, "耳標+哪眼(自行填入)",
+                    "微軟正黑體", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                    HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                    BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                    true, false, true);
+
+            //-800~800 那一 Row
+            int dataStartRowIndex = i + 3 + num + groupListCount;
+
+            int[] depths = IntStream.rangeClosed(-8, 8)
+                    .map(d -> d * 100)
+                    .toArray();
+
+            int groupColumnIndex;
+            for (int d = 0; d < depths.length; d++) {
+                Row dataRow = sheet.getRow(dataStartRowIndex + d);
+                if (dataRow == null) {
+                    dataRow = sheet.createRow(dataStartRowIndex + d);
                 }
 
+                //Column 0 -800~800
+                createStyledCell(workbook, dataRow, 0, String.valueOf(depths[d]),
+                        "Arial", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 208, (byte) 208, (byte) 208},
+                        HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                        BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                        true, false, false);
+
+                groupColumnIndex = 1;
+
+                for (String key : keys) {
+                    String groupKey = key.substring(0, key.indexOf("_"));
+
+                    if (!groupKey.equals(groupList.get(i))) continue;
+
+                    List<Object> values =
+                            octTotalLayerDataDownloadRequestMapSet.get(key);
+
+                    Object value = values.get(d);
+
+                    createStyledCell(workbook, dataRow, groupColumnIndex, value,
+                            "Arial", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                            HorizontalAlignment.RIGHT, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            false, false, false);
+
+                    groupColumnIndex++;
+                }
+            }
+
+            if (i < groupList.size() - 1) {
+                String keyNext = groupList.get(i + 1);
                 if (!processedKey.equals(keyNext)) {
-                    //計算每個 Column 的 sum 值
-                    for (int j = 0; j < values.size(); j++) {
-                        if (values.get(j) instanceof Number) {
-                            sums[j] += ((Number) values.get(j)).doubleValue();
-                        }
-                    }
-
-                    //將每個 Column 的最終 sum 值寫入 Excel
-                    setAverageRow(sheet, averageStyle, i + 2 + num, sums, groupMouseCount + 1);
-
-                    //換組別將 sum 及 groupMouseCount 歸 0
-                    Arrays.fill(sums, 0.0);
-                    groupMouseCount = 0;
+                    groupListCount = 0;
                     //只有不同時才增加行索引
-                    num += 3;
+                    num += 20;
                     continue;
                 }
             }
 
-            //計算每個 Column 的 sum 值
-            for (int j = 0; j < values.size(); j++) {
-                if (values.get(j) instanceof Number) {
-                    sums[j] += ((Number) values.get(j)).doubleValue();
-                }
-            }
-
-            groupMouseCount++;
+            groupListCount++;
         }
 
-        //將每個 Column 的最終 sum 值寫入 Excel
-        setAverageRow(sheet, averageStyle, (keys.size() - 1) + 2 + num, sums, groupMouseCount);
+        for (int i = 0; i < keys.size(); i++) {
+            sheet.autoSizeColumn(i);
+        }
+
+        int maxCharKeyCount = calculateColumnWidthFactor(keys);
+        Map<Integer, Integer> columnWidthMultiplier = new HashMap<>();
+        columnWidthMultiplier.put(0, 13); // 第 1 列用 3.3 倍
+        for(int i = 1; i < keys.size(); i++) {
+            columnWidthMultiplier.put(i, maxCharKeyCount);
+        }
+
+        adjustColumnWidthForExcel(sheet, columnWidthMultiplier);
 
         //寫出檔案
         FileOutputStream fileOut = new FileOutputStream(path + "/OCT Total Layer_" + time + ".xlsx");
@@ -449,6 +499,112 @@ public class XlsxUtil {
         workbook.close();
         fileOut.close();
     }
+
+//    /**
+//     * 產製 OCT Total Layer xlsx 檔
+//     * @param path: 輸出的 Excel 路徑
+//     * @param header: 表頭陣列
+//     * @param octTotalLayerDataDownloadRequestMapSet: 前端傳來的 Data 內容
+//     * @param fontName: 字型名稱
+//     */
+//    public static void createOCTTotalLayerXlsxFile(
+//            String path,
+//            List<List<String>> header,
+//            Map<String, List<Object>> octTotalLayerDataDownloadRequestMapSet,
+//            String fontName
+//    ) throws IOException {
+//
+//        SXSSFWorkbook workbook = new SXSSFWorkbook(100);
+//        SXSSFSheet sheet = workbook.createSheet("Result");
+//
+//        Map<Integer, Double> columnWidthMultiplier = new HashMap<>();
+//        columnWidthMultiplier.put(9, 3.8); // 第 9 列用 3.3 倍
+//        columnWidthMultiplier.put(10, 1.9); // 第 10 列用 3.3 倍
+//        columnWidthMultiplier.put(11, 1.9); // 第 11 列用 3.3 倍
+//        columnWidthMultiplier.put(12, 1.9); // 第 12 列用 3.3 倍
+//        columnWidthMultiplier.put(13, 1.9); // 第 13 列用 3.3 倍
+//        columnWidthMultiplier.put(14, 1.9); // 第 14 列用 3.3 倍
+//        columnWidthMultiplier.put(15, 1.9); // 第 15 列用 3.3 倍
+//        columnWidthMultiplier.put(16, 1.9); // 第 16 列用 3.3 倍
+//        columnWidthMultiplier.put(17, 1.9); // 第 17 列用 3.3 倍
+//        createHeaderAndStyleForExcel(header, fontName, workbook, sheet, columnWidthMultiplier);
+//
+//        CellStyle contentStyle = createContentAndStyleForExcel(fontName, workbook);
+//        CellStyle averageStyle = createContentAverageStyleForExcel(fontName, workbook);
+//
+//        //設定內容
+//        List<String> keys = new ArrayList<>(octTotalLayerDataDownloadRequestMapSet.keySet());
+//
+//        int num = 0;
+//        int groupMouseCount = 0;
+//        double[] sums = new double[17]; // 用於存儲 sum 值，-800~800 總共 17個
+//
+//        //將 data 寫入 Excel
+//        for (int i = 0; i < keys.size(); i++) {
+//
+//            String key = keys.get(i);
+//            String processedKey = key;
+//
+//            //處理鍵值對，避免無效操作
+//            if (key.contains("_")) {
+//                processedKey = key.substring(0, key.indexOf("_"));
+//            }
+//
+//            List<Object> values = octTotalLayerDataDownloadRequestMapSet.get(keys.get(i));
+//
+//            //建立第二列 (Row)
+//            Row row = sheet.createRow(i + 1 + num);
+//            createCell(row, 0, keys.get(i), contentStyle);
+//
+//            for(int j = 0; j < values.size(); j++){
+//                createCell(row, (j + 1), values.get(j), contentStyle);
+//            }
+//
+//            if (i < keys.size() - 1) {
+//                String keyNext = keys.get(i + 1);
+//                if (keyNext.contains("_")) {
+//                    keyNext = keyNext.substring(0, keyNext.indexOf("_"));
+//                }
+//
+//                if (!processedKey.equals(keyNext)) {
+//                    //計算每個 Column 的 sum 值
+//                    for (int j = 0; j < values.size(); j++) {
+//                        if (values.get(j) instanceof Number) {
+//                            sums[j] += ((Number) values.get(j)).doubleValue();
+//                        }
+//                    }
+//
+//                    //將每個 Column 的最終 sum 值寫入 Excel
+//                    setAverageRow(sheet, averageStyle, i + 2 + num, sums, groupMouseCount + 1);
+//
+//                    //換組別將 sum 及 groupMouseCount 歸 0
+//                    Arrays.fill(sums, 0.0);
+//                    groupMouseCount = 0;
+//                    //只有不同時才增加行索引
+//                    num += 3;
+//                    continue;
+//                }
+//            }
+//
+//            //計算每個 Column 的 sum 值
+//            for (int j = 0; j < values.size(); j++) {
+//                if (values.get(j) instanceof Number) {
+//                    sums[j] += ((Number) values.get(j)).doubleValue();
+//                }
+//            }
+//
+//            groupMouseCount++;
+//        }
+//
+//        //將每個 Column 的最終 sum 值寫入 Excel
+//        setAverageRow(sheet, averageStyle, (keys.size() - 1) + 2 + num, sums, groupMouseCount);
+//
+//        //寫出檔案
+//        FileOutputStream fileOut = new FileOutputStream(path + "/OCT Total Layer_" + time + ".xlsx");
+//        workbook.write(fileOut);
+//        workbook.close();
+//        fileOut.close();
+//    }
 
     /**
      * 設置 Excel 儲存格的通用方法
@@ -497,6 +653,66 @@ public class XlsxUtil {
             cell.setCellValue(sums[i] / count);
             cell.setCellStyle(averageStyle);
         }
+    }
+
+    private static Cell createStyledCell(
+            Workbook workbook,
+            Row row,
+            int columnIndex,
+            Object value,
+            String fontName,
+            short fontSize,
+            byte[] rgbFont,
+            byte[] rgbBackground,
+            HorizontalAlignment horizontalAlignment,
+            VerticalAlignment verticalAlignment,
+            BorderStyle borderStyleTop,
+            BorderStyle borderStyleBottom,
+            BorderStyle borderStyleLeft,
+            BorderStyle borderStyleRight,
+            boolean bold,
+            boolean italic,
+            boolean wrapText) {
+
+        //Excel 自動計算 cell 高度
+        row.setHeight((short) -1);
+        Cell cell = row.createCell(columnIndex);
+        if (value instanceof String) {
+            cell.setCellValue((String) value);
+        } else if (value instanceof Double) {
+            cell.setCellValue((Double) value);
+        } else if (value instanceof Integer) {
+            cell.setCellValue((Integer) value);
+        }
+
+        XSSFFont groupFont = (XSSFFont) workbook.createFont();
+        groupFont.setFontName(fontName);
+        groupFont.setFontHeightInPoints(fontSize);
+        groupFont.setColor(new XSSFColor(rgbFont, null));
+        groupFont.setBold(bold);
+        groupFont.setItalic(italic);
+
+        CellStyle style = workbook.createCellStyle();
+        //設定儲存格自動換行
+        style.setWrapText(wrapText);
+        //設定儲存格上、下、左、右邊框
+        style.setBorderTop(borderStyleTop);
+        style.setBorderBottom(borderStyleBottom);
+        style.setBorderLeft(borderStyleLeft);
+        style.setBorderRight(borderStyleRight);
+        //設定文字水平方向
+        style.setAlignment(horizontalAlignment);
+        //設定文字垂直方向
+        style.setVerticalAlignment(verticalAlignment);
+        style.setFont(groupFont);
+
+        //背景顏色
+        ((XSSFCellStyle) style).setFillForegroundColor(new XSSFColor(rgbBackground, new DefaultIndexedColorMap()));
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        cell.setCellStyle(style);
+
+        return cell;
     }
 
     /**
@@ -567,6 +783,34 @@ public class XlsxUtil {
                 }
             }
         }
+    }
+
+    /**
+     * 所有 Excel 表頭部分的通用樣式
+     * @param sheet: Excel 的內頁
+     * @param columnWidthMultiplier: 動態設定列寬的索引與倍數
+     */
+    private static void adjustColumnWidthForExcel(
+            SXSSFSheet sheet,
+            Map<Integer, Integer> columnWidthMultiplier //動態設定列寬的索引與倍數
+    ){
+
+        List<Integer> keys = new ArrayList<>(columnWidthMultiplier.keySet());
+        //設定自適應列寬
+        sheet.trackAllColumnsForAutoSizing();
+
+        // 其餘資料欄
+        for (Integer key : keys) {
+            sheet.setColumnWidth(key, columnWidthMultiplier.get(key) * 256);
+        }
+
+        //檢查是否有特定列需要使用倍數調整寬度
+//        if (columnWidthMultiplier.containsKey(j)) {
+//            double multiplier = columnWidthMultiplier.get(j);
+//            sheet.setColumnWidth(j, (int) (sheet.getColumnWidth(j) * multiplier));
+//        } else {
+//            sheet.setColumnWidth(j, (sheet.getColumnWidth(j) * 16 / 10));
+//        }
     }
 
     /**
@@ -644,5 +888,16 @@ public class XlsxUtil {
         headers.setCacheControl("no-cache,must-revalidate");
 
         return new ResponseEntity<>(xlsxFile, headers, HttpStatus.OK);
+    }
+
+    public static int calculateColumnWidthFactor(List<String> keys) {
+
+        int maxLength = keys.stream()
+                .filter(Objects::nonNull)
+                .mapToInt(String::length)
+                .max()
+                .orElse(0);
+
+        return (int) Math.ceil(maxLength * 1.5);
     }
 }
