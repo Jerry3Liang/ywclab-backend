@@ -73,7 +73,8 @@ public class OCTFourLayerServiceImpl implements OCTFourLayerService {
 
         try {
             //產出Excel檔案
-            XlsxUtil.createOCTFourLayerXlsxFile(EXCEL_PATH, header, octFourLayerDataDownloadRequestMapSet, "Times New Roman");
+//            XlsxUtil.createOCTFourLayerXlsxFile(EXCEL_PATH, header, octFourLayerDataDownloadRequestMapSet, "Times New Roman");
+            XlsxUtil.createProductionOCTFourLayerXlsxFile(EXCEL_PATH, octFourLayerDataDownloadRequestMapSet);
 
             //轉換為Byte
             return XlsxUtil.parseXlsxFileToByte("OCT 4 Layer_", generateTime);

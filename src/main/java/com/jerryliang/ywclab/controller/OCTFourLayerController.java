@@ -32,7 +32,7 @@ public class OCTFourLayerController {
 
     @ActionLogs(action = "獲取 OCT Four Layer 最終計算 Data")
     @PostMapping("/excelDataToTable")
-    public ResponseEntity<?> getOCTTotalLayerFinalData(@RequestBody MultipartFile[] files) throws IllegalArgumentException {
+    public ResponseEntity<?> getOCTFourLayerFinalData(@RequestBody MultipartFile[] files) throws IllegalArgumentException {
         if(files == null){
             return ResponseEntity.notFound().build();
         }
