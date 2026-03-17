@@ -10,6 +10,7 @@ import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.gson.GsonAutoConfiguration;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
+import static com.jerryliang.ywclab.utils.CommonMethods.zeroIfAtLeastNZero;
 
 @Component
 public class OPsServiceImpl implements OPsService {
@@ -99,7 +102,8 @@ public class OPsServiceImpl implements OPsService {
 
         try {
             //產出Excel檔案
-            XlsxUtil.createOPsXlsxFile(EXCEL_PATH, header, opsDataDownloadRequestMapSet, "Times New Roman");
+//            XlsxUtil.createOPsXlsxFile(EXCEL_PATH, header, opsDataDownloadRequestMapSet, "Times New Roman");
+            XlsxUtil.createProductionOPsXlsxFile(EXCEL_PATH, opsDataDownloadRequestMapSet);
 
             //轉換為Byte
             return XlsxUtil.parseXlsxFileToByte("OPs_", generateTime);
@@ -135,21 +139,39 @@ public class OPsServiceImpl implements OPsService {
         double OP4MaxValue = OP4MinToOP4MaxList.get(OP4MinToOP4MaxList.size() - 1).getValue();
         double OP4MaxValueSeconds = OP4MinToOP4MaxList.get(OP4MinToOP4MaxList.size() - 1).getSeconds();
 
+        double OP5MinValue;
+        double OP5MaxValue;
+        double OP5MaxValueSeconds;
+
         //找到下一個最小值 (也就是 OP5 波谷)，先獲得 OP4 Max 的 index，再去一一比較大小
         int OP4MaxValueRowIndex = findValueRowIndex(rawDataList, OP4MaxValue);
         ArrayList<Double> OP4MaxToOP5MinList = goBackCompareSmallAndStore(OP4MaxValue, OP4MaxValueRowIndex, rawDataList);
-        double OP5MinValue = OP4MaxToOP5MinList.get(OP4MaxToOP5MinList.size()-1);
+        OP5MinValue = OP4MaxToOP5MinList.get(OP4MaxToOP5MinList.size()-1);
 
-        //找到下一個最大值及其對應的毫秒數 (也就是 OP5 波鋒)，先獲得 OP5 Min 的 index，再去一一比較大小
-        int OP5MinValueRowIndex = findValueRowIndex(rawDataList, OP5MinValue);
-        ArrayList<OPsAnalyzeEntity> OP5MinToOP5MaxList = goBackCompareLargeAndStore(OP5MinValue, OP5MinValueRowIndex, rawDataList, rawMilliSecList);
-        double OP5MaxValue = OP5MinToOP5MaxList.get(OP5MinToOP5MaxList.size() - 1).getValue();
-        double OP5MaxValueSeconds = OP5MinToOP5MaxList.get(OP5MinToOP5MaxList.size() - 1).getSeconds();
+        if(OP4MaxValue == 0.0) {
+            OP5MinValue = 0.0;
+            OP5MaxValue = 0.0;
+            OP5MaxValueSeconds = 0.0;
+        } else {
+            //如果 OP5MinValue = 0.0 代表 OP4 波谷在波形很後段，無法找到 OP5
+            if(OP5MinValue == 0.0) {
+                OP5MaxValue = 0.0;
+                OP5MaxValueSeconds = 0.0;
+            } else {
+                //找到下一個最大值及其對應的毫秒數 (也就是 OP5 波鋒)，先獲得 OP5 Min 的 index，再去一一比較大小
+                int OP5MinValueRowIndex = findValueRowIndex(rawDataList, OP5MinValue);
+                ArrayList<OPsAnalyzeEntity> OP5MinToOP5MaxList = goBackCompareLargeAndStore(OP5MinValue, OP5MinValueRowIndex, rawDataList, rawMilliSecList);
+
+                OP5MaxValue = OP5MinToOP5MaxList.get(OP5MinToOP5MaxList.size() - 1).getValue();
+                OP5MaxValueSeconds = OP5MinToOP5MaxList.get(OP5MinToOP5MaxList.size() - 1).getSeconds();
+            }
+        }
 
         //往回找到前一個最大值及其對應的毫秒數 (也就是 OP3 波鋒)，再去一一比較大小
         ArrayList<OPsAnalyzeEntity> OP4MinToOP3MaxList = goForwardCompareLargeAndStore(OP4MinValue ,OP4MinValueRowIndex, rawDataList, rawMilliSecList);
         double OP3MaxValue = OP4MinToOP3MaxList.get(OP4MinToOP3MaxList.size() - 1).getValue();
         double OP3MaxValueSeconds = OP4MinToOP3MaxList.get(OP4MinToOP3MaxList.size() - 1).getSeconds();
+        System.out.println("OP4MinToOP3MaxList : " + OP4MinToOP3MaxList);
 
         //往回找到前一個最小值 (也就是 OP3 波谷)，先獲得 OP3 Max 的 index，再去一一比較大小
         int OP3MaxValueRowIndex = findValueRowIndex(rawDataList, OP3MaxValue);
@@ -161,7 +183,6 @@ public class OPsServiceImpl implements OPsService {
         ArrayList<OPsAnalyzeEntity> OP3MinToOP2MaxList = goForwardCompareLargeAndStore(OP3MinValue ,OP3MinValueRowIndex, rawDataList, rawMilliSecList);
         double OP2MaxValue = OP3MinToOP2MaxList.get(OP3MinToOP2MaxList.size() - 1).getValue();
         double OP2MaxValueSeconds = OP3MinToOP2MaxList.get(OP3MinToOP2MaxList.size() - 1).getSeconds();
-
         //往回找到前一個最小值 (也就是 OP2 波谷)，先獲得 OP2 Max 的 index，再去一一比較大小
         int OP2MaxValueRowIndex = findValueRowIndex(rawDataList, OP2MaxValue);
         ArrayList<Double> OP2MaxToMinList = goForwardCompareSmallAndStore(OP2MaxValue, OP2MaxValueRowIndex, rawDataList);
@@ -172,15 +193,19 @@ public class OPsServiceImpl implements OPsService {
         ArrayList<OPsAnalyzeEntity> OP2MinToOP1MaxList = goForwardCompareLargeAndStore(OP2MinValue ,OP2MinValueRowIndex, rawDataList, rawMilliSecList);
         double OP1MaxValue = OP2MinToOP1MaxList.get(OP2MinToOP1MaxList.size() - 1).getValue();
         double OP1MaxValueSeconds = OP2MinToOP1MaxList.get(OP2MinToOP1MaxList.size() - 1).getSeconds();
-
         //往回找到前一個最小值 (也就是 OP1 波谷)，先獲得 OP1 Max 的 index，再去一一比較大小
         int OP1MaxValueRowIndex = findValueRowIndex(rawDataList, OP1MaxValue);
         ArrayList<Double> OP1MaxToMinList = goForwardCompareSmallAndStore(OP1MaxValue, OP1MaxValueRowIndex, rawDataList);
         double OP1MinValue = OP1MaxToMinList.get(OP1MaxToMinList.size() - 1);
 
-        return new double[]{OP1MaxValue, OP1MinValue, OP1MaxValueSeconds, OP2MaxValue, OP2MinValue, OP2MaxValueSeconds,
+        double[] finalOPValuesAndSeconds = new double[]{OP1MaxValue, OP1MinValue, OP1MaxValueSeconds, OP2MaxValue, OP2MinValue, OP2MaxValueSeconds,
                 OP3MaxValue, OP3MinValue, OP3MaxValueSeconds, OP4MaxValue, OP4MinValue, OP4MaxValueSeconds,
                 OP5MaxValue, OP5MinValue, OP5MaxValueSeconds};
+
+        //檢查 finalOPValuesAndSeconds 陣列有大於 3個 0.0，就將全部值變成 0.0
+        zeroIfAtLeastNZero(finalOPValuesAndSeconds, 3);
+
+        return finalOPValuesAndSeconds;
     }
 
     private static double[] findOPsMaxAndMinOP3Started(List<Double> rawDataList, List<Double> rawMilliSecList){
@@ -193,52 +218,100 @@ public class OPsServiceImpl implements OPsService {
         double OP3MaxValue = OP3MinToOP3MaxList.get(OP3MinToOP3MaxList.size() - 1).getValue();
         double OP3MaxValueSeconds = OP3MinToOP3MaxList.get(OP3MinToOP3MaxList.size() - 1).getSeconds();
 
-        //找到下一個最小值 (也就是 OP4 波谷)，先獲得 OP3 Max 的 index，再去一一比較大小
-        int OP3MaxValueRowIndex = findValueRowIndex(rawDataList, OP3MaxValue);
-        ArrayList<Double> OP3MaxToOP4MinList = goBackCompareSmallAndStore(OP3MaxValue, OP3MaxValueRowIndex, rawDataList);
-        double OP4MinValue = OP3MaxToOP4MinList.get(OP3MaxToOP4MinList.size()-1);
+        double OP4MinValue;
+        double OP4MaxValue;
+        double OP4MaxValueSeconds;
+        double OP5MinValue;
+        double OP5MaxValue;
+        double OP5MaxValueSeconds;
 
-        //找到下一個最大值及其對應的毫秒數 (也就是 OP4 波鋒)，先獲得 OP4 Min 的 index，再去一一比較大小
-        int OP4MinValueRowIndex = findValueRowIndex(rawDataList, OP4MinValue);
-        ArrayList<OPsAnalyzeEntity> OP4MinToOP4MaxList = goBackCompareLargeAndStore(OP4MinValue, OP4MinValueRowIndex, rawDataList, rawMilliSecList);
-        double OP4MaxValue = OP4MinToOP4MaxList.get(OP4MinToOP4MaxList.size() - 1).getValue();
-        double OP4MaxValueSeconds = OP4MinToOP4MaxList.get(OP4MinToOP4MaxList.size() - 1).getSeconds();
+        if(OP3MaxValue == 0.0) {
+            OP4MinValue = 0.0;
+            OP4MaxValue = 0.0;
+            OP4MaxValueSeconds = 0.0;
+            OP5MinValue = 0.0;
+            OP5MaxValue = 0.0;
+            OP5MaxValueSeconds = 0.0;
+        } else {
+            //找到下一個最小值 (也就是 OP4 波谷)，先獲得 OP3 Max 的 index，再去一一比較大小
+            int OP3MaxValueRowIndex = findValueRowIndex(rawDataList, OP3MaxValue);
+            ArrayList<Double> OP3MaxToOP4MinList = goBackCompareSmallAndStore(OP3MaxValue, OP3MaxValueRowIndex, rawDataList);
+            OP4MinValue = OP3MaxToOP4MinList.get(OP3MaxToOP4MinList.size()-1);
 
-        //找到下一個最小值 (也就是 OP5 波谷)，先獲得 OP4 Max 的 index，再去一一比較大小
-        int OP4MaxValueRowIndex = findValueRowIndex(rawDataList, OP4MaxValue);
-        ArrayList<Double> OP4MaxToOP5MinList = goBackCompareSmallAndStore(OP4MaxValue, OP4MaxValueRowIndex, rawDataList);
-        double OP5MinValue = OP4MaxToOP5MinList.get(OP4MaxToOP5MinList.size()-1);
+            //如果 OP4MinValue = 0.0 代表 OP3 波谷在波形很後段，無法找到 OP4 及 OP5
+            if(OP4MinValue == 0.0) {
+                OP4MaxValue = 0.0;
+                OP4MaxValueSeconds = 0.0;
+                OP5MinValue = 0.0;
+                OP5MaxValue = 0.0;
+                OP5MaxValueSeconds = 0.0;
+            } else {
+                //找到下一個最大值及其對應的毫秒數 (也就是 OP4 波鋒)，先獲得 OP4 Min 的 index，再去一一比較大小
+                int OP4MinValueRowIndex = findValueRowIndex(rawDataList, OP4MinValue);
+                ArrayList<OPsAnalyzeEntity> OP4MinToOP4MaxList = goBackCompareLargeAndStore(OP4MinValue, OP4MinValueRowIndex, rawDataList, rawMilliSecList);
+                OP4MaxValue = OP4MinToOP4MaxList.get(OP4MinToOP4MaxList.size() - 1).getValue();
+                OP4MaxValueSeconds = OP4MinToOP4MaxList.get(OP4MinToOP4MaxList.size() - 1).getSeconds();
 
-        //找到下一個最大值及其對應的毫秒數 (也就是 OP5 波鋒)，先獲得 OP5 Min 的 index，再去一一比較大小
-        int OP5MinValueRowIndex = findValueRowIndex(rawDataList, OP5MinValue);
-        ArrayList<OPsAnalyzeEntity> OP5MinToOP5MaxList = goBackCompareLargeAndStore(OP5MinValue, OP5MinValueRowIndex, rawDataList, rawMilliSecList);
-        double OP5MaxValue = OP5MinToOP5MaxList.get(OP5MinToOP5MaxList.size() - 1).getValue();
-        double OP5MaxValueSeconds = OP5MinToOP5MaxList.get(OP5MinToOP5MaxList.size() - 1).getSeconds();
+                //找到下一個最小值 (也就是 OP5 波谷)，先獲得 OP4 Max 的 index，再去一一比較大小
+                int OP4MaxValueRowIndex = findValueRowIndex(rawDataList, OP4MaxValue);
+                ArrayList<Double> OP4MaxToOP5MinList = goBackCompareSmallAndStore(OP4MaxValue, OP4MaxValueRowIndex, rawDataList);
+                OP5MinValue = OP4MaxToOP5MinList.get(OP4MaxToOP5MinList.size()-1);
+
+                //找到下一個最大值及其對應的毫秒數 (也就是 OP5 波鋒)，先獲得 OP5 Min 的 index，再去一一比較大小
+                int OP5MinValueRowIndex = findValueRowIndex(rawDataList, OP5MinValue);
+                ArrayList<OPsAnalyzeEntity> OP5MinToOP5MaxList = goBackCompareLargeAndStore(OP5MinValue, OP5MinValueRowIndex, rawDataList, rawMilliSecList);
+                OP5MaxValue = OP5MinToOP5MaxList.get(OP5MinToOP5MaxList.size() - 1).getValue();
+                OP5MaxValueSeconds = OP5MinToOP5MaxList.get(OP5MinToOP5MaxList.size() - 1).getSeconds();
+            }
+        }
 
         //往回找到前一個最大值及其對應的毫秒數 (也就是 OP2 波鋒)，再去一一比較大小
         ArrayList<OPsAnalyzeEntity> OP3MinToOP2MaxList = goForwardCompareLargeAndStore(OP3MinValue ,OP3MinValueRowIndex, rawDataList, rawMilliSecList);
         double OP2MaxValue = OP3MinToOP2MaxList.get(OP3MinToOP2MaxList.size() - 1).getValue();
         double OP2MaxValueSeconds = OP3MinToOP2MaxList.get(OP3MinToOP2MaxList.size() - 1).getSeconds();
 
-        //往回找到前一個最小值 (也就是 OP2 波谷)，先獲得 OP2 Max 的 index，再去一一比較大小
-        int OP2MaxValueRowIndex = findValueRowIndex(rawDataList, OP2MaxValue);
-        ArrayList<Double> OP2MaxToMinList = goForwardCompareSmallAndStore(OP2MaxValue, OP2MaxValueRowIndex, rawDataList);
-        double OP2MinValue = OP2MaxToMinList.get(OP2MaxToMinList.size() - 1);
+        double OP2MinValue;
+        double OP1MinValue;
+        double OP1MaxValue;
+        double OP1MaxValueSeconds;
 
-        //往回找到前一個最大值及其對應的毫秒數 (也就是 OP1 波鋒)，先獲得 OP2 Min 的 index，再去一一比較大小
-        int OP2MinValueRowIndex = findValueRowIndex(rawDataList, OP2MinValue);
-        ArrayList<OPsAnalyzeEntity> OP2MinToOP1MaxList = goForwardCompareLargeAndStore(OP2MinValue ,OP2MinValueRowIndex, rawDataList, rawMilliSecList);
-        double OP1MaxValue = OP2MinToOP1MaxList.get(OP2MinToOP1MaxList.size() - 1).getValue();
-        double OP1MaxValueSeconds = OP2MinToOP1MaxList.get(OP2MinToOP1MaxList.size() - 1).getSeconds();
+        if(OP2MaxValue == 0.0) {
+            OP2MinValue = 0.0;
+            OP1MinValue = 0.0;
+            OP1MaxValue = 0.0;
+            OP1MaxValueSeconds = 0.0;
+        } else {
+            //往回找到前一個最小值 (也就是 OP2 波谷)，先獲得 OP2 Max 的 index，再去一一比較大小
+            int OP2MaxValueRowIndex = findValueRowIndex(rawDataList, OP2MaxValue);
+            ArrayList<Double> OP2MaxToMinList = goForwardCompareSmallAndStore(OP2MaxValue, OP2MaxValueRowIndex, rawDataList);
+            OP2MinValue = OP2MaxToMinList.get(OP2MaxToMinList.size() - 1);
 
-        //往回找到前一個最小值 (也就是 OP1 波谷)，先獲得 OP1 Max 的 index，再去一一比較大小
-        int OP1MaxValueRowIndex = findValueRowIndex(rawDataList, OP1MaxValue);
-        ArrayList<Double> OP1MaxToMinList = goForwardCompareSmallAndStore(OP1MaxValue, OP1MaxValueRowIndex, rawDataList);
-        double OP1MinValue = OP1MaxToMinList.get(OP1MaxToMinList.size() - 1);
+            if(OP2MinValue == 0.0) {
+                OP1MinValue = 0.0;
+                OP1MaxValue = 0.0;
+                OP1MaxValueSeconds = 0.0;
+            } else {
+                //往回找到前一個最大值及其對應的毫秒數 (也就是 OP1 波鋒)，先獲得 OP2 Min 的 index，再去一一比較大小
+                int OP2MinValueRowIndex = findValueRowIndex(rawDataList, OP2MinValue);
+                ArrayList<OPsAnalyzeEntity> OP2MinToOP1MaxList = goForwardCompareLargeAndStore(OP2MinValue ,OP2MinValueRowIndex, rawDataList, rawMilliSecList);
+                OP1MaxValue = OP2MinToOP1MaxList.get(OP2MinToOP1MaxList.size() - 1).getValue();
+                OP1MaxValueSeconds = OP2MinToOP1MaxList.get(OP2MinToOP1MaxList.size() - 1).getSeconds();
 
-        return new double[]{OP1MaxValue, OP1MinValue, OP1MaxValueSeconds, OP2MaxValue, OP2MinValue, OP2MaxValueSeconds,
+                //往回找到前一個最小值 (也就是 OP1 波谷)，先獲得 OP1 Max 的 index，再去一一比較大小
+                int OP1MaxValueRowIndex = findValueRowIndex(rawDataList, OP1MaxValue);
+                ArrayList<Double> OP1MaxToMinList = goForwardCompareSmallAndStore(OP1MaxValue, OP1MaxValueRowIndex, rawDataList);
+                OP1MinValue = OP1MaxToMinList.get(OP1MaxToMinList.size() - 1);
+            }
+        }
+
+        double[] finalOPValuesAndSeconds = new double[]{OP1MaxValue, OP1MinValue, OP1MaxValueSeconds, OP2MaxValue, OP2MinValue, OP2MaxValueSeconds,
                 OP3MaxValue, OP3MinValue, OP3MaxValueSeconds, OP4MaxValue, OP4MinValue, OP4MaxValueSeconds,
                 OP5MaxValue, OP5MinValue, OP5MaxValueSeconds};
+
+        //檢查 finalOPValuesAndSeconds 陣列有大於 3個 0.0，就將全部值變成 0.0
+        zeroIfAtLeastNZero(finalOPValuesAndSeconds, 3);
+
+        return finalOPValuesAndSeconds;
     }
 
     private static double findAllDataMin(List<Double> rawDataList){
@@ -262,6 +335,7 @@ public class OPsServiceImpl implements OPsService {
         for(int i = 0; i < rawDataList.size(); i++){
             double value = rawDataList.get(i);
             if (value == currentValue) {
+                System.out.println("有進");
                 currentValue = value;
                 maxRowIndex = i;
             }
@@ -277,6 +351,13 @@ public class OPsServiceImpl implements OPsService {
         OPsAnalyzeEntity currentValue = new OPsAnalyzeEntity(startValue, timeForMaxValue);
 
         for (int i = startValueIndex; i >= 0; i++) {
+            if(i + 1 >= rawDataList.size()) {
+                OPsAnalyzeEntity noValue = new OPsAnalyzeEntity(0.0, 0.0);
+                resultArray.add(noValue);
+
+                return resultArray;
+            }
+
             double value = rawDataList.get(i + 1);
             if(!Double.valueOf(value).isNaN()){
                 double time = rawMilliSecList.get(i + 1);
@@ -308,6 +389,12 @@ public class OPsServiceImpl implements OPsService {
         double currentValue = startValue;
 
         for (int i = startValueIndex; i >= 0; i++) {
+            if(i + 1 >= rawDataList.size()) {
+                resultArray.add(0.0);
+
+                return resultArray;
+            }
+
             double value = rawDataList.get(i + 1);
             if(!Double.valueOf(value).isNaN()){
                 if(currentValue > value){
@@ -336,6 +423,14 @@ public class OPsServiceImpl implements OPsService {
         OPsAnalyzeEntity currentValue = new OPsAnalyzeEntity(startValue, timeForMaxValue);
 
         for (int i = startValueIndex; i >= 0; i--) {
+            if(i - 1 < 0) {
+                System.out.println("有進此！！！！");
+                OPsAnalyzeEntity noValue = new OPsAnalyzeEntity(0.0, 0.0);
+                resultArray.add(noValue);
+
+                return resultArray;
+            }
+
             double value = rawDataList.get(i - 1);
             if(!Double.valueOf(value).isNaN()){
                 double time = rawMilliSecList.get(i - 1);
@@ -365,6 +460,14 @@ public class OPsServiceImpl implements OPsService {
         double currentValue = startValue;
 
         for (int i = startValueIndex; i >= 0; i--) {
+            System.out.println("i : " + i);
+            System.out.println("rawDataList of size : " + rawDataList.size());
+            if(i - 1 < 0) {
+                resultArray.add(0.0);
+
+                return resultArray;
+            }
+
             double value = rawDataList.get(i - 1);
             if(!Double.valueOf(value).isNaN()){
                 if(currentValue > value){

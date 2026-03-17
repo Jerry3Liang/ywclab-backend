@@ -82,26 +82,48 @@ public class XlsxUtil {
                     BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                     true, false, false);
 
+            int row2Index = i + 1 + num + groupListCount;
+            Row row2 = sheet.getRow(row2Index);
             int groupMouseCount = 1;
 
-            for (String key : keys) {
-                int row2Index = i + 1 + num + groupListCount;
-                Row row2 = sheet.getRow(row2Index);
-                String comparedKey = key.substring(0, key.indexOf("_"));
-                if (comparedKey.equals(groupList.get(i))) {
-                    createStyledCell(workbook, row2, groupMouseCount, "",
-                            "Arial", (short) 12, new byte[]{(byte) 0, (byte) 0, (byte) 0}, new byte[]{(byte) 128, (byte) 128, (byte) 128},
-                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
-                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
-                            true, false, false);
-                    createStyledCell(workbook, row2, groupMouseCount + 1, "",
-                            "Arial", (short) 12, new byte[]{(byte) 0, (byte) 0, (byte) 0}, new byte[]{(byte) 128, (byte) 128, (byte) 128},
-                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
-                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
-                            true, false, false);
+            //先把屬於該 group 的 key 抓出來
+            List<String> groupKeys = keys.stream()
+                    .filter(key -> key.substring(0, key.indexOf("_"))
+                            .equals(processedKey))
+                    .toList();
 
-                    groupMouseCount += 2;
-                }
+            for (int k = 0; k < groupKeys.size(); k += 4) {
+                //建立兩個欄位
+                createStyledCell(workbook, row2, groupMouseCount, "",
+                        "Arial", (short) 12, new byte[]{(byte) 0, (byte) 0, (byte) 0}, new byte[]{(byte) 128, (byte) 128, (byte) 128},
+                        HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                        BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                        true, false, false);
+                createStyledCell(workbook, row2, groupMouseCount + 1, "",
+                        "Arial", (short) 12, new byte[]{(byte) 0, (byte) 0, (byte) 0}, new byte[]{(byte) 128, (byte) 128, (byte) 128},
+                        HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                        BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                        true, false, false);
+                createStyledCell(workbook, row2, groupMouseCount + 2, "",
+                        "Arial", (short) 12, new byte[]{(byte) 0, (byte) 0, (byte) 0}, new byte[]{(byte) 128, (byte) 128, (byte) 128},
+                        HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                        BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                        true, false, false);
+                createStyledCell(workbook, row2, groupMouseCount + 3, "",
+                        "Arial", (short) 12, new byte[]{(byte) 0, (byte) 0, (byte) 0}, new byte[]{(byte) 128, (byte) 128, (byte) 128},
+                        HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                        BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                        true, false, false);
+
+                //merge 兩欄
+                sheet.addMergedRegion(new CellRangeAddress(
+                        row2Index,
+                        row2Index,
+                        groupMouseCount,
+                        groupMouseCount + 3
+                ));
+
+                groupMouseCount += 2;
             }
 
             if (i < groupList.size() - 1) {
@@ -341,34 +363,237 @@ public class XlsxUtil {
     /**
      * 產製 OPs xlsx 檔
      * @param path: 輸出的 Excel 路徑
-     * @param header: 表頭陣列
      * @param opsDataDownloadRequestMapSet: 前端傳來的 Data 內容
-     * @param fontName: 字型名稱
      */
-    public static void createOPsXlsxFile(
+    public static void createProductionOPsXlsxFile(
             String path,
-            List<List<String>> header,
-            Map<String, OPsAnalyzeDTO> opsDataDownloadRequestMapSet,
-            String fontName
+            Map<String, OPsAnalyzeDTO> opsDataDownloadRequestMapSet
     ) throws IOException {
 
         SXSSFWorkbook workbook = new SXSSFWorkbook(100);
         SXSSFSheet sheet = workbook.createSheet("Result");
 
-        Map<Integer, Double> columnWidthMultiplier = new HashMap<>();
-        columnWidthMultiplier.put(2, 1.8); // 第 3 列用 4.5 倍
-        columnWidthMultiplier.put(6, 1.8); // 第 3 列用 4.5 倍
-
-        createHeaderAndStyleForExcel(header, fontName, workbook, sheet, columnWidthMultiplier);
-
-        CellStyle contentStyle = createContentAndStyleForExcel(fontName, workbook);
+        sheet.trackAllColumnsForAutoSizing();
 
         //設定內容
         List<String> keys = new ArrayList<>(opsDataDownloadRequestMapSet.keySet());
-        int num = 0;
 
-        //將 data 寫入 Excel
+        List<String> groupList = keys.stream()
+                .map(key -> key.substring(0, key.indexOf("_"))).distinct().toList();
+
+        int num = 0;
+        int groupListCount = 0;
+
+        for(int i = 0; i < groupList.size(); i++) {
+            int rowIndex = i + num + groupListCount;
+
+            Row row = sheet.getRow(rowIndex);
+            if (row == null) {
+                row = sheet.createRow(rowIndex);
+            }
+
+            String processedKey = groupList.get(i);
+
+            //組別那一 Row
+            createStyledCell(workbook, row, 0, "組別：",
+                    "微軟正黑體", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 84},
+                    HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                    BorderStyle.NONE, BorderStyle.NONE, BorderStyle.NONE, BorderStyle.NONE,
+                    true, false, false);
+            createStyledCell(workbook, row, 1, groupList.get(i),
+                    "Arial", (short) 12, new byte[] {(byte) 255, (byte) 0, (byte) 0}, new byte[] {(byte) 255, (byte) 255, (byte) 84},
+                    HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                    BorderStyle.NONE, BorderStyle.NONE, BorderStyle.NONE, BorderStyle.NONE,
+                    true, false, false);
+
+            //流水編號那一 Row
+            createStyledCell(workbook, sheet.createRow(i + 1 + num + groupListCount), 0, "流水編號",
+                    "微軟正黑體", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 217, (byte) 217, (byte) 217},
+                    HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                    BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                    true, false, false);
+
+            int groupMouseCount = 1;
+
+            for (String key : keys) {
+                int row3Index = i + 1 + num + groupListCount;
+                Row row3 = sheet.getRow(row3Index);
+                String comparedKey = key.substring(0, key.indexOf("_"));
+                if (comparedKey.equals(groupList.get(i))) {
+                    createStyledCell(workbook, row3, groupMouseCount, key + "L",
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[]{(byte) 217, (byte) 217, (byte) 217},
+                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            true, false, false);
+                    createStyledCell(workbook, row3, groupMouseCount + 1, key + "R",
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[]{(byte) 217, (byte) 217, (byte) 217},
+                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            true, false, false);
+
+                    groupMouseCount += 2;
+                }
+            }
+
+            //耳標+哪眼(自行填入) 那一 Row
+            createStyledCell(workbook, sheet.createRow(i + 2 + num + groupListCount), 0, "耳標+哪眼(自行填入)",
+                    "微軟正黑體", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                    HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                    BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                    true, false, true);
+            int row2Index = i + 2 + num + groupListCount;
+            Row row2 = sheet.getRow(row2Index);
+            int groupMouseCount2 = 1;
+
+            //先把屬於該 group 的 key 抓出來
+            List<String> groupKeys = keys.stream()
+                    .filter(key -> key.substring(0, key.indexOf("_"))
+                            .equals(processedKey))
+                    .toList();
+
+            for (int k = 0; k < (groupKeys.size()) * 2; k += 2) {
+                //建立兩個欄位
+                createStyledCell(workbook, row2, groupMouseCount2, "",
+                        "Arial", (short) 12,
+                        new byte[] {0, 0, 0},
+                        new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                        HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                        BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                        true, false, false);
+
+                createStyledCell(workbook, row2, groupMouseCount2 + 1, "",
+                        "Arial", (short) 12,
+                        new byte[] {0, 0, 0},
+                        new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                        HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                        BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                        true, false, false);
+
+                groupMouseCount2 += 2;
+            }
+
+            //Column 0 OP1~5 Total 那一 Row
+            int dataStartRowIndex = i + 3 + num + groupListCount;
+
+            String[] opLabels = {"OP1", "OP2", "OP3", "OP4", "OP5", "Total"};
+
+            int groupColumnIndex;
+            for (int d = 0; d < opLabels.length; d++) {
+                Row dataRow = sheet.getRow(dataStartRowIndex + d);
+                if (dataRow == null) {
+                    dataRow = sheet.createRow(dataStartRowIndex + d);
+                }
+
+                //Column 0 OP1~5 OP2+3+4
+                createStyledCell(workbook, dataRow, 0, opLabels[d],
+                        "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 217, (byte) 217, (byte) 217},
+                        HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                        BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                        true, false, false);
+
+                groupColumnIndex = 1;
+
+                for (String key : keys) {
+                    String groupKey = key.substring(0, key.indexOf("_"));
+
+                    if(!groupKey.equals(groupList.get(i))) {
+                        continue;
+                    }
+
+                    OPsAnalyzeDTO values = opsDataDownloadRequestMapSet.get(key);
+
+                    List<Double> valuesR = values.getRightEyeOPsData();
+                    if(valuesR.size() == 5) {
+                        valuesR.add(valuesR.stream().mapToDouble(Double::doubleValue).sum());
+                    }
+
+                    List<Double> valuesL = values.getLeftEyeOPsData();
+                    if(valuesL.size() == 5) {
+                        valuesL.add(valuesL.stream().mapToDouble((Double::doubleValue)).sum());
+                    }
+
+                    double valueL = valuesL.get(d);
+                    double valueR = valuesR.get(d);
+
+                    createStyledCell(workbook, dataRow, groupColumnIndex, valueL == 0 ? "N/A" : valueL,
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                            HorizontalAlignment.RIGHT, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            false, false, false);
+                    createStyledCell(workbook, dataRow, groupColumnIndex + 1, valueR == 0 ? "N/A" : valueR,
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                            HorizontalAlignment.RIGHT, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            false, false, false);
+
+                    groupColumnIndex += 2;
+                }
+            }
+
+            if (i < groupList.size() - 1) {
+                String keyNext = groupList.get(i + 1);
+                if (!processedKey.equals(keyNext)) {
+                    groupListCount = 0;
+                    //只有不同時才增加行索引
+                    num += 9;
+                    continue;
+                }
+            }
+
+            groupListCount++;
+        }
+
         for (int i = 0; i < keys.size(); i++) {
+            sheet.autoSizeColumn(i);
+        }
+
+        int maxCharKeyCount = calculateColumnWidthFactor(keys);
+        Map<Integer, Integer> columnWidthMultiplier = new HashMap<>();
+        columnWidthMultiplier.put(0, 13); // 第 1 列用 3.3 倍
+        for(int i = 1; i < (keys.size()) * 2; i++) {
+            columnWidthMultiplier.put(i, maxCharKeyCount);
+        }
+
+        adjustColumnWidthForExcel(sheet, columnWidthMultiplier);
+
+        //寫出檔案
+        FileOutputStream fileOut = new FileOutputStream(path + "/OPs_" + time + ".xlsx");
+        workbook.write(fileOut);
+        workbook.close();
+        fileOut.close();
+    }
+
+    /**
+     * 產製 OPs xlsx 檔 (非正式)
+     * @param path: 輸出的 Excel 路徑
+     * @param header: 表頭陣列
+     * @param opsDataDownloadRequestMapSet: 前端傳來的 Data 內容
+     * @param fontName: 字型名稱
+     */
+//    public static void createOPsXlsxFile(
+//            String path,
+//            List<List<String>> header,
+//            Map<String, OPsAnalyzeDTO> opsDataDownloadRequestMapSet,
+//            String fontName
+//    ) throws IOException {
+//
+//        SXSSFWorkbook workbook = new SXSSFWorkbook(100);
+//        SXSSFSheet sheet = workbook.createSheet("Result");
+//
+//        Map<Integer, Double> columnWidthMultiplier = new HashMap<>();
+//        columnWidthMultiplier.put(2, 1.8); // 第 3 列用 4.5 倍
+//        columnWidthMultiplier.put(6, 1.8); // 第 3 列用 4.5 倍
+//
+//        createHeaderAndStyleForExcel(header, fontName, workbook, sheet, columnWidthMultiplier);
+//
+//        CellStyle contentStyle = createContentAndStyleForExcel(fontName, workbook);
+//
+//        //設定內容
+//        List<String> keys = new ArrayList<>(opsDataDownloadRequestMapSet.keySet());
+//        int num = 0;
+//
+//        //將 data 寫入 Excel
+//        for (int i = 0; i < keys.size(); i++) {
 
 //            String key = keys.get(i);
 //            String processedKey = key;
@@ -378,38 +603,38 @@ public class XlsxUtil {
 //                processedKey = key.substring(0, key.indexOf("_"));
 //            }
 
-            OPsAnalyzeDTO values = opsDataDownloadRequestMapSet.get(keys.get(i));
-            List<Double> leftEyeOPsData = values.getLeftEyeOPsData();
-            List<Double> leftEyeOPsMilliSec = values.getLeftEyeOPsMilliSec();
-            List<Double> rightEyeOPsData = values.getRightEyeOPsData();
-            List<Double> rightEyeOPsMilliSec = values.getRightEyeOPsMilliSec();
-
-            for(int j = 0; j < 5; j++){
-                //建立第二列 (Row)
-                Row row = sheet.createRow((i + 1) + j + num);
-                createCell(row, 0, keys.get(i), contentStyle);
-                createCell(row, 1, "OP" + (j + 1) + " (L)", contentStyle);
-                createCell(row, 2, leftEyeOPsData.get(j), contentStyle);
-                createCell(row, 3, leftEyeOPsMilliSec.get(j), contentStyle);
-                createCell(row, 4, leftEyeOPsData.get(1) + leftEyeOPsData.get(2) + leftEyeOPsData.get(3), contentStyle);
-                createCell(row, 5, "OP" + (j + 1) + " (R)", contentStyle);
-                createCell(row, 6, rightEyeOPsData.get(j), contentStyle);
-                createCell(row, 7, rightEyeOPsMilliSec.get(j), contentStyle);
-                createCell(row, 8, rightEyeOPsData.get(1) + rightEyeOPsData.get(2) + rightEyeOPsData.get(3), contentStyle);
-            }
-
-            sheet.addMergedRegion(new CellRangeAddress((i + 1) + num, (i + 1) + (num + 4), 0, 0));
-            sheet.addMergedRegion(new CellRangeAddress((i + 1) + num, (i + 1) + (num + 4), 4, 4));
-            sheet.addMergedRegion(new CellRangeAddress((i + 1) + num, (i + 1) + (num + 4), 8, 8));
-            num += 5;
-        }
-
-        //寫出檔案
-        FileOutputStream fileOut = new FileOutputStream(path + "/OPs_" + time + ".xlsx");
-        workbook.write(fileOut);
-        workbook.close();
-        fileOut.close();
-    }
+//            OPsAnalyzeDTO values = opsDataDownloadRequestMapSet.get(keys.get(i));
+//            List<Double> leftEyeOPsData = values.getLeftEyeOPsData();
+//            List<Double> leftEyeOPsMilliSec = values.getLeftEyeOPsMilliSec();
+//            List<Double> rightEyeOPsData = values.getRightEyeOPsData();
+//            List<Double> rightEyeOPsMilliSec = values.getRightEyeOPsMilliSec();
+//
+//            for(int j = 0; j < 5; j++){
+//                //建立第二列 (Row)
+//                Row row = sheet.createRow((i + 1) + j + num);
+//                createCell(row, 0, keys.get(i), contentStyle);
+//                createCell(row, 1, "OP" + (j + 1) + " (L)", contentStyle);
+//                createCell(row, 2, leftEyeOPsData.get(j), contentStyle);
+//                createCell(row, 3, leftEyeOPsMilliSec.get(j), contentStyle);
+//                createCell(row, 4, leftEyeOPsData.get(1) + leftEyeOPsData.get(2) + leftEyeOPsData.get(3), contentStyle);
+//                createCell(row, 5, "OP" + (j + 1) + " (R)", contentStyle);
+//                createCell(row, 6, rightEyeOPsData.get(j), contentStyle);
+//                createCell(row, 7, rightEyeOPsMilliSec.get(j), contentStyle);
+//                createCell(row, 8, rightEyeOPsData.get(1) + rightEyeOPsData.get(2) + rightEyeOPsData.get(3), contentStyle);
+//            }
+//
+//            sheet.addMergedRegion(new CellRangeAddress((i + 1) + num, (i + 1) + (num + 4), 0, 0));
+//            sheet.addMergedRegion(new CellRangeAddress((i + 1) + num, (i + 1) + (num + 4), 4, 4));
+//            sheet.addMergedRegion(new CellRangeAddress((i + 1) + num, (i + 1) + (num + 4), 8, 8));
+//            num += 5;
+//        }
+//
+//        //寫出檔案
+//        FileOutputStream fileOut = new FileOutputStream(path + "/OPs_" + time + ".xlsx");
+//        workbook.write(fileOut);
+//        workbook.close();
+//        fileOut.close();
+//    }
 
 
     /**
@@ -448,7 +673,7 @@ public class XlsxUtil {
 
             //組別那一 Row
             createStyledCell(workbook, row, 0, "組別：",
-                    "微軟正黑體", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 255, (byte) 255, (byte) 84},
+                    "微軟正黑體", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 84},
                     HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
                     BorderStyle.NONE, BorderStyle.NONE, BorderStyle.NONE, BorderStyle.NONE,
                     true, false, false);
@@ -460,7 +685,7 @@ public class XlsxUtil {
 
             //耳標 (自行填入) 那一 Row
             createStyledCell(workbook, sheet.createRow(i + 1 + num + groupListCount), 0, "耳標+哪眼(自行填入)",
-                    "微軟正黑體", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                    "微軟正黑體", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
                     HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
                     BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                     true, false, true);
@@ -479,16 +704,16 @@ public class XlsxUtil {
                 //建立兩個欄位
                 createStyledCell(workbook, row2, groupMouseCount, "",
                         "Arial", (short) 12,
-                        new byte[]{0,0,0},
-                        new byte[]{(byte)255,(byte)255,(byte)255},
+                        new byte[] {0, 0, 0},
+                        new byte[] {(byte) 255, (byte) 255, (byte) 255},
                         HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
                         BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                         true, false, false);
 
                 createStyledCell(workbook, row2, groupMouseCount + 1, "",
                         "Arial", (short) 12,
-                        new byte[]{0,0,0},
-                        new byte[]{(byte)255,(byte)255,(byte)255},
+                        new byte[] {0, 0, 0},
+                        new byte[] {(byte) 255, (byte) 255, (byte) 255},
                         HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
                         BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                         true, false, false);
@@ -539,7 +764,7 @@ public class XlsxUtil {
 
             //流水編號那一 Row
             createStyledCell(workbook, sheet.createRow(i + 3 + num + groupListCount), 0, "流水編號",
-                    "微軟正黑體", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 217, (byte) 217, (byte) 217},
+                    "微軟正黑體", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 217, (byte) 217, (byte) 217},
                     HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
                     BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                     true, false, false);
@@ -552,7 +777,7 @@ public class XlsxUtil {
                 String comparedKey = key.substring(0, key.indexOf("_"));
                 if (comparedKey.equals(groupList.get(i))) {
                     createStyledCell(workbook, row4, groupMouseCount2, key,
-                            "Arial", (short) 12, new byte[]{(byte) 0, (byte) 0, (byte) 0}, new byte[]{(byte) 217, (byte) 217, (byte) 217},
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[]{(byte) 217, (byte) 217, (byte) 217},
                             HorizontalAlignment.LEFT, VerticalAlignment.CENTER,
                             BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                             false, false, false);
@@ -574,7 +799,7 @@ public class XlsxUtil {
 
                 //Column 0 total、NFL_INL、OPL_ONL、IS_OS_RPE
                 createStyledCell(workbook, dataRow, 0, depths[d],
-                        "Arial", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 217, (byte) 217, (byte) 217},
+                        "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 217, (byte) 217, (byte) 217},
                         HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
                         BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                         true, false, false);
@@ -593,7 +818,7 @@ public class XlsxUtil {
                     Object value = values.get(d);
 
                     createStyledCell(workbook, dataRow, groupColumnIndex, value,
-                            "Arial", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
                             HorizontalAlignment.RIGHT, VerticalAlignment.CENTER,
                             BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                             false, false, false);
@@ -769,7 +994,7 @@ public class XlsxUtil {
 
             //組別那一 Row
             createStyledCell(workbook, row, 0, "組別：",
-                    "微軟正黑體", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 255, (byte) 255, (byte) 84},
+                    "微軟正黑體", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 84},
                     HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
                     BorderStyle.NONE, BorderStyle.NONE, BorderStyle.NONE, BorderStyle.NONE,
                     true, false, false);
@@ -781,7 +1006,7 @@ public class XlsxUtil {
 
             //流水編號那一 Row
             createStyledCell(workbook, sheet.createRow(i + 1 + num + groupListCount), 0, "流水編號",
-                    "微軟正黑體", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 217, (byte) 217, (byte) 217},
+                    "微軟正黑體", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 217, (byte) 217, (byte) 217},
                     HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
                     BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                     true, false, false);
@@ -794,7 +1019,7 @@ public class XlsxUtil {
                 String comparedKey = key.substring(0, key.indexOf("_"));
                 if (comparedKey.equals(groupList.get(i))) {
                     createStyledCell(workbook, row3, groupMouseCount, key,
-                            "Arial", (short) 12, new byte[]{(byte) 0, (byte) 0, (byte) 0}, new byte[]{(byte) 217, (byte) 217, (byte) 217},
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[]{(byte) 217, (byte) 217, (byte) 217},
                             HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
                             BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                             true, false, false);
@@ -805,10 +1030,41 @@ public class XlsxUtil {
 
             //耳標+哪眼(自行填入) 那一 Row
             createStyledCell(workbook, sheet.createRow(i + 2 + num + groupListCount), 0, "耳標+哪眼(自行填入)",
-                    "微軟正黑體", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                    "微軟正黑體", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
                     HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
                     BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                     true, false, true);
+
+            int row2Index = i + 2 + num + groupListCount;
+            Row row2 = sheet.getRow(row2Index);
+            int groupMouseCount2 = 1;
+
+            //先把屬於該 group 的 key 抓出來
+            List<String> groupKeys = keys.stream()
+                    .filter(key -> key.substring(0, key.indexOf("_"))
+                            .equals(processedKey))
+                    .toList();
+
+            for (int k = 0; k < groupKeys.size(); k += 2) {
+                //建立兩個欄位
+                createStyledCell(workbook, row2, groupMouseCount2, "",
+                        "Arial", (short) 12,
+                        new byte[] {0, 0, 0},
+                        new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                        HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                        BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                        true, false, false);
+
+                createStyledCell(workbook, row2, groupMouseCount2 + 1, "",
+                        "Arial", (short) 12,
+                        new byte[] {0, 0, 0},
+                        new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                        HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                        BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                        true, false, false);
+
+                groupMouseCount2 += 2;
+            }
 
             //-800~800 那一 Row
             int dataStartRowIndex = i + 3 + num + groupListCount;
@@ -826,7 +1082,7 @@ public class XlsxUtil {
 
                 //Column 0 -800~800
                 createStyledCell(workbook, dataRow, 0, String.valueOf(depths[d]),
-                        "Arial", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 208, (byte) 208, (byte) 208},
+                        "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 208, (byte) 208, (byte) 208},
                         HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
                         BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                         true, false, false);
@@ -844,7 +1100,7 @@ public class XlsxUtil {
                     Object value = values.get(d);
 
                     createStyledCell(workbook, dataRow, groupColumnIndex, value,
-                            "Arial", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
                             HorizontalAlignment.RIGHT, VerticalAlignment.CENTER,
                             BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                             false, false, false);

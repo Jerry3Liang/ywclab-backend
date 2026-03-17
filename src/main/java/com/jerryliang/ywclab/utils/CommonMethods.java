@@ -41,4 +41,15 @@ public class CommonMethods {
 
         return ResponseEntity.ok(false);
     }
+
+    public static void zeroIfAtLeastNZero(double[] arr, int n) {
+        int count = 0;
+
+        for (double v : arr) {
+            if (v == 0.0 && ++count >= n) {
+                java.util.Arrays.fill(arr, 0.0);
+                return;
+            }
+        }
+    }
 }

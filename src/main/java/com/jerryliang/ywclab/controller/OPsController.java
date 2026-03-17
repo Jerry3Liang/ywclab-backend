@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -124,6 +126,14 @@ public class OPsController {
                     );
             oPsAnalyzeResponse.setRightEyeOPsData(rightOPsAndMilliSec.get(0));
             oPsAnalyzeResponse.setRightEyeOPsMilliSec(rightOPsAndMilliSec.get(1));
+            if(rightOPsAndMilliSec.get(0).size() == 5) {
+                double rightEyeOPSSum = rightOPsAndMilliSec.get(0).stream().mapToDouble(Double::doubleValue).sum();
+                BigDecimal rightRounded = BigDecimal.valueOf(rightEyeOPSSum)
+                        .setScale(2, RoundingMode.HALF_UP);
+
+                oPsAnalyzeResponse.setRightEyeOPsTotal(rightRounded.doubleValue());
+                oPsAnalyzeResponse.setRightEyeOPsTotalMilliSec(0.0);
+            }
 
             List<List<Double>> leftOPsAndMilliSec = oPsService.findOPsDataAndMilliSec
                     (
@@ -133,6 +143,15 @@ public class OPsController {
                     );
             oPsAnalyzeResponse.setLeftEyeOPsData(leftOPsAndMilliSec.get(0));
             oPsAnalyzeResponse.setLeftEyeOPsMilliSec(leftOPsAndMilliSec.get(1));
+            if(leftOPsAndMilliSec.get(0).size() == 5) {
+                double leftEyeOPSSum = leftOPsAndMilliSec.get(0).stream().mapToDouble(Double::doubleValue).sum();
+                BigDecimal leftRounded = BigDecimal.valueOf(leftEyeOPSSum)
+                        .setScale(2, RoundingMode.HALF_UP);
+
+                oPsAnalyzeResponse.setLeftEyeOPsTotal(leftRounded.doubleValue());
+                oPsAnalyzeResponse.setLeftEyeOPsTotalMilliSec(0.0);
+            }
+
             responseList.add(oPsAnalyzeResponse);
         }
 
@@ -146,6 +165,7 @@ public class OPsController {
             return ResponseEntity.noContent().build();
         }
 
+//        System.out.println("DownloadOPsDataRequest : " + downloadOPsDataRequest);
         return oPsService.exportOPsXlsx(downloadOPsDataRequest.getOpsDataMapSet());
     }
 }
