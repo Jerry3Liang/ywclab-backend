@@ -127,7 +127,6 @@ public class PhNRController {
                 } catch (Exception e) {
                     //若讀取失敗，則使用 Aspose 轉換為 .xlsx 格式
                     try {
-                        System.out.println("1");
                         inputFile = CommonMethods.convertToXlsx(file);
                     } catch (EvaluationLimitExceededException ex) {
                         if (ex.getMessage().contains("files exceeding limitation")) {
