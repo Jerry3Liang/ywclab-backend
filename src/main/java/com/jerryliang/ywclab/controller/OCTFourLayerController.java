@@ -7,10 +7,10 @@ import com.jerryliang.ywclab.dto.DownloadOCTFourLayerDataRequest;
 import com.jerryliang.ywclab.dto.OCTFourResponse;
 import com.jerryliang.ywclab.model.OCTFourLayerEntity;
 import com.jerryliang.ywclab.service.OCTFourLayerService;
+import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,12 +21,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @CrossOrigin
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/fourLayer")
 public class OCTFourLayerController {
 
-    @Autowired
-    private OCTFourLayerService octFourLayerService;
+    //搭配 Lombok 的 @RequiredArgsConstructor 實作 Constructor Injection，不使用 @Autowired
+    private final OCTFourLayerService octFourLayerService;
 
     InputStream inputFile;
 

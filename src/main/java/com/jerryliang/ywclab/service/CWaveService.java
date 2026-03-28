@@ -1,5 +1,7 @@
 package com.jerryliang.ywclab.service;
 
+import com.jerryliang.ywclab.dto.CWaveTableToDownloadEntity;
+import com.jerryliang.ywclab.model.CWaveTableEntity;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.springframework.http.ResponseEntity;
 
@@ -8,9 +10,12 @@ import java.util.Map;
 
 public interface CWaveService {
 
-    List<Object> findFilterData1(Sheet sheet);
 
-    List<Object> findFilterData2(Sheet sheet);
+    List<CWaveTableEntity> newFindFilterData1(Sheet sheet);
+    List<CWaveTableEntity> newFindFilterData2(Sheet sheet);
+    List<Object> oldFindFilterData1(Sheet sheet);
+
+    List<Object> oldFindFilterData2(Sheet sheet);
 
     List<Double> findAllDataByColumnIndex(Sheet sheet, Integer columnIndex, Integer startRowIndex);
 
@@ -24,7 +29,7 @@ public interface CWaveService {
 
     Integer findRowIndexByCellValue(Sheet sheet, String keyWord, Integer columnIndex);
 
-    ResponseEntity<byte[]> exportCWaveXlsx(Map<String, List<Object>> cWaveTableDataDownloadRequestMapSet, Map<String, String> expDateMapSet, Map<String, Double> luxDataMapSet);
+    ResponseEntity<byte[]> exportCWaveXlsx(Map<String, List<CWaveTableEntity>> cWaveTableDataDownloadRequestMapSet, Map<String, String> expDateMapSet, Map<String, Double> luxDataMapSet);
 
     String fileReName(Map<String, String> cWaveNewAndOldFileNameMapSet, String folderPath, String inputCaseName);
 }

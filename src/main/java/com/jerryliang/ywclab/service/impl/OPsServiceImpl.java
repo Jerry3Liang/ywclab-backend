@@ -95,10 +95,10 @@ public class OPsServiceImpl implements OPsService {
         //產生當前時間 yyyy年MM月dd日
         String generateTime = DatetimeConverter.getSYSTime(4);
 
-        //設定Excel表頭
-        List<List<String>> header = new ArrayList<>();
-        //欄位名稱
-        header.add(Arrays.asList("Mouse NO.", "Eye (L, OPX)", "µV", "ms", "OP2+OP3+OP4 (L)", "Eye (R, OPX)", "µV", "ms", "OP2+OP3+OP4 (R)"));
+//        //設定Excel表頭
+//        List<List<String>> header = new ArrayList<>();
+//        //欄位名稱
+//        header.add(Arrays.asList("Mouse NO.", "Eye (L, OPX)", "µV", "ms", "OP2+OP3+OP4 (L)", "Eye (R, OPX)", "µV", "ms", "OP2+OP3+OP4 (R)"));
 
         try {
             //產出Excel檔案
@@ -107,8 +107,7 @@ public class OPsServiceImpl implements OPsService {
 
             //轉換為Byte
             return XlsxUtil.parseXlsxFileToByte("OPs_", generateTime);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
 
             return null;
         }
@@ -171,7 +170,6 @@ public class OPsServiceImpl implements OPsService {
         ArrayList<OPsAnalyzeEntity> OP4MinToOP3MaxList = goForwardCompareLargeAndStore(OP4MinValue ,OP4MinValueRowIndex, rawDataList, rawMilliSecList);
         double OP3MaxValue = OP4MinToOP3MaxList.get(OP4MinToOP3MaxList.size() - 1).getValue();
         double OP3MaxValueSeconds = OP4MinToOP3MaxList.get(OP4MinToOP3MaxList.size() - 1).getSeconds();
-        System.out.println("OP4MinToOP3MaxList : " + OP4MinToOP3MaxList);
 
         //往回找到前一個最小值 (也就是 OP3 波谷)，先獲得 OP3 Max 的 index，再去一一比較大小
         int OP3MaxValueRowIndex = findValueRowIndex(rawDataList, OP3MaxValue);
@@ -335,7 +333,6 @@ public class OPsServiceImpl implements OPsService {
         for(int i = 0; i < rawDataList.size(); i++){
             double value = rawDataList.get(i);
             if (value == currentValue) {
-                System.out.println("有進");
                 currentValue = value;
                 maxRowIndex = i;
             }
@@ -424,7 +421,6 @@ public class OPsServiceImpl implements OPsService {
 
         for (int i = startValueIndex; i >= 0; i--) {
             if(i - 1 < 0) {
-                System.out.println("有進此！！！！");
                 OPsAnalyzeEntity noValue = new OPsAnalyzeEntity(0.0, 0.0);
                 resultArray.add(noValue);
 
@@ -460,8 +456,6 @@ public class OPsServiceImpl implements OPsService {
         double currentValue = startValue;
 
         for (int i = startValueIndex; i >= 0; i--) {
-            System.out.println("i : " + i);
-            System.out.println("rawDataList of size : " + rawDataList.size());
             if(i - 1 < 0) {
                 resultArray.add(0.0);
 

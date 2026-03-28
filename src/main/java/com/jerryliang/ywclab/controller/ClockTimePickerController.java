@@ -3,6 +3,7 @@ package com.jerryliang.ywclab.controller;
 import com.jerryliang.ywclab.annotation.ActionLogs;
 import com.jerryliang.ywclab.dto.*;
 import com.jerryliang.ywclab.service.ClockTimePickerService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,12 +15,12 @@ import java.util.Calendar;
 import java.util.List;
 
 @CrossOrigin
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/clock")
 public class ClockTimePickerController {
-
-    @Autowired
-    private ClockTimePickerService clockTimePickerService;
+    //搭配 Lombok 的 @RequiredArgsConstructor 實作 Constructor Injection，不使用 @Autowired
+    private final ClockTimePickerService clockTimePickerService;
 
     @ActionLogs(action = "簽到")
     @PostMapping("/insertStartTime")

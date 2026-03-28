@@ -7,10 +7,10 @@ import com.jerryliang.ywclab.annotation.ActionLogs;
 import com.jerryliang.ywclab.dto.ReNameExpFileNameExceptCWaveRequest;
 import com.jerryliang.ywclab.service.UpdateFileNameService;
 import com.jerryliang.ywclab.utils.ReNameUtil;
+import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,12 +29,13 @@ import java.util.List;
 import java.util.Map;
 
 @CrossOrigin
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/updateFileName")
 public class UpdateFileNameController {
 
-    @Autowired
-    private UpdateFileNameService updateFileNameService;
+    //搭配 Lombok 的 @RequiredArgsConstructor 實作 Constructor Injection，不使用 @Autowired
+    private final UpdateFileNameService updateFileNameService;
 
     //最後修改好檔名的 URL
     @Value("${file.updateFileName.path}")

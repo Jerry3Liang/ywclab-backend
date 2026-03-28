@@ -7,10 +7,10 @@ import com.jerryliang.ywclab.dto.PhNRResponse;
 import com.jerryliang.ywclab.model.PhNREntity;
 import com.jerryliang.ywclab.service.PhNRService;
 import com.jerryliang.ywclab.utils.CommonMethods;
+import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,12 +20,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @CrossOrigin
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/phnr")
 public class PhNRController {
 
-    @Autowired
-    private PhNRService phNRService;
+    //搭配 Lombok 的 @RequiredArgsConstructor 實作 Constructor Injection，不使用 @Autowired
+    private final PhNRService phNRService;
 
     @ActionLogs(action = "獲取 PhNR Table Data")
     @PostMapping("/excelDataToTable")

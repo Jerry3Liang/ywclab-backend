@@ -23,8 +23,8 @@ class CWaveServiceImplTest {
         try(FileInputStream file = new FileInputStream(filePath)){
             Workbook workbook = WorkbookFactory.create(file);
             Sheet sheet = workbook.getSheetAt(0);
-            List<Object> Data1 = cWaveService.findFilterData1(sheet);
-            List<Object> Data2 = cWaveService.findFilterData2(sheet);
+            List<Object> Data1 = cWaveService.oldFindFilterData1(sheet);
+            List<Object> Data2 = cWaveService.oldFindFilterData2(sheet);
 
             System.out.println(Data1);
             System.out.println(Data2);

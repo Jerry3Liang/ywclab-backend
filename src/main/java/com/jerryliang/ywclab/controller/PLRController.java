@@ -6,10 +6,10 @@ import com.jerryliang.ywclab.annotation.ActionLogs;
 import com.jerryliang.ywclab.model.PLREntity;
 import com.jerryliang.ywclab.service.PLRService;
 import com.jerryliang.ywclab.utils.CommonMethods;
+import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,12 +19,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @CrossOrigin
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/plr")
 public class PLRController {
 
-    @Autowired
-    private PLRService plrService;
+    //搭配 Lombok 的 @RequiredArgsConstructor 實作 Constructor Injection，不使用 @Autowired
+    private final PLRService plrService;
 
     @ActionLogs(action = "獲取 PLR Raw Data")
     @PostMapping("/excelDataToLine")
@@ -36,7 +37,6 @@ public class PLRController {
         List<String> errors = new ArrayList<>(); //用來收集錯誤訊息的 List
         for (MultipartFile file : files) {
             try{
-                System.out.println(file.getContentType());
                 String fileName = file.getOriginalFilename();
                 String fileNamePattern = "^[A-Za-z()+=&~ \\d\\u4e00-\\u9fa5]+_[^_-]+-.*$";
 

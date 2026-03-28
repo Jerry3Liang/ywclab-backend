@@ -7,10 +7,10 @@ import com.jerryliang.ywclab.dto.VEPResponse;
 import com.jerryliang.ywclab.model.VEPEntity;
 import com.jerryliang.ywclab.service.VEPService;
 import com.jerryliang.ywclab.utils.CommonMethods;
+import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,12 +20,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @CrossOrigin
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/vep")
 public class VEPController {
 
-    @Autowired
-    private VEPService vepService;
+    //搭配 Lombok 的 @RequiredArgsConstructor 實作 Constructor Injection，不使用 @Autowired
+    private final VEPService vepService;
 
     @ActionLogs(action = "獲取 VEP Table Data")
     @PostMapping("/excelDataToTable")

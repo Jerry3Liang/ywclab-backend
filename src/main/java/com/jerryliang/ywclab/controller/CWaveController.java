@@ -6,10 +6,11 @@ import com.jerryliang.ywclab.Exception.InvalidFileNameException;
 import com.jerryliang.ywclab.annotation.ActionLogs;
 import com.jerryliang.ywclab.dto.*;
 import com.jerryliang.ywclab.model.CWaveEntity;
+import com.jerryliang.ywclab.model.CWaveTableEntity;
 import com.jerryliang.ywclab.service.CWaveService;
 import com.jerryliang.ywclab.utils.CommonMethods;
+import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,12 +26,13 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 @CrossOrigin
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/c_wave")
 public class CWaveController {
 
-    @Autowired
-    private CWaveService cWaveService;
+    //搭配 Lombok 的 @RequiredArgsConstructor 實作 Constructor Injection，不使用 @Autowired
+    private final CWaveService cWaveService;
 
     //最後修改好檔名的 URL
     @Value("${file.updateFileName.path}")
@@ -98,6 +100,7 @@ public class CWaveController {
                         if (rowCount >= 6) {
                             break;
                         }
+
                         for (Cell cell : row) {
                             if (cell.getCellType() == CellType.STRING) {
                                 String cellValue = cell.getStringCellValue();
@@ -107,7 +110,7 @@ public class CWaveController {
                             }
                         }
 
-                        rowCount++; // 每次檢查完一行後增加計數器
+                        rowCount++; //每次檢查完一行後增加計數器
                     }
                 }
 
@@ -118,9 +121,9 @@ public class CWaveController {
                 int luxStartIndex = cWaveService.findRowIndexByCellValue(sheet, "cd.s/m", 2);
                 Double lux = cWaveService.findLuxDataByRowIndex(sheet, luxStartIndex + 2);
                 cWaveResponse.setLux(lux);
-                List<Object> cWaveRawData1 = cWaveService.findFilterData1(sheet);
+                List<CWaveTableEntity> cWaveRawData1 = cWaveService.newFindFilterData1(sheet);
                 cWaveResponse.setEyeDataOne(cWaveRawData1);
-                List<Object> cWaveRawData2 = cWaveService.findFilterData2(sheet);
+                List<CWaveTableEntity> cWaveRawData2 = cWaveService.newFindFilterData2(sheet);
                 cWaveResponse.setEyeDataTwo(cWaveRawData2);
 
                 CWaveRawDataList.add(cWaveResponse);
@@ -136,7 +139,7 @@ public class CWaveController {
         }
 
         if (!errors.isEmpty()) {
-            // 如果有錯誤，將錯誤訊息返回
+            //如果有錯誤，將錯誤訊息返回
             return ResponseEntity.badRequest().body(errors);
         }
 

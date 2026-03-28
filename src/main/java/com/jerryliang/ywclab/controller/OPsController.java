@@ -9,10 +9,10 @@ import com.jerryliang.ywclab.dto.OPsAnalyzeResponse;
 import com.jerryliang.ywclab.model.OPsEntity;
 import com.jerryliang.ywclab.service.OPsService;
 import com.jerryliang.ywclab.utils.CommonMethods;
+import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,12 +24,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @CrossOrigin
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/ops")
 public class OPsController {
 
-    @Autowired
-    private OPsService oPsService;
+    //搭配 Lombok 的 @RequiredArgsConstructor 實作 Constructor Injection，不使用 @Autowired
+    private final OPsService oPsService;
 
     @ActionLogs(action = "獲取 OPs Raw Data")
     @PostMapping("/excelDataToLine")
@@ -126,12 +127,19 @@ public class OPsController {
                     );
             oPsAnalyzeResponse.setRightEyeOPsData(rightOPsAndMilliSec.get(0));
             oPsAnalyzeResponse.setRightEyeOPsMilliSec(rightOPsAndMilliSec.get(1));
+
             if(rightOPsAndMilliSec.get(0).size() == 5) {
+                double rightEyeOPs234 = rightOPsAndMilliSec.get(0).get(1) + rightOPsAndMilliSec.get(0).get(2) + rightOPsAndMilliSec.get(0).get(3);
+                BigDecimal right234Rounded = BigDecimal.valueOf(rightEyeOPs234)
+                        .setScale(2, RoundingMode.HALF_UP);
+                oPsAnalyzeResponse.setRightEyeOPs234(right234Rounded.doubleValue());
+                oPsAnalyzeResponse.setRightEyeOPs234MilliSec(0.0);
+
                 double rightEyeOPSSum = rightOPsAndMilliSec.get(0).stream().mapToDouble(Double::doubleValue).sum();
-                BigDecimal rightRounded = BigDecimal.valueOf(rightEyeOPSSum)
+                BigDecimal rightSumRounded = BigDecimal.valueOf(rightEyeOPSSum)
                         .setScale(2, RoundingMode.HALF_UP);
 
-                oPsAnalyzeResponse.setRightEyeOPsTotal(rightRounded.doubleValue());
+                oPsAnalyzeResponse.setRightEyeOPsTotal(rightSumRounded.doubleValue());
                 oPsAnalyzeResponse.setRightEyeOPsTotalMilliSec(0.0);
             }
 
@@ -143,7 +151,14 @@ public class OPsController {
                     );
             oPsAnalyzeResponse.setLeftEyeOPsData(leftOPsAndMilliSec.get(0));
             oPsAnalyzeResponse.setLeftEyeOPsMilliSec(leftOPsAndMilliSec.get(1));
+
             if(leftOPsAndMilliSec.get(0).size() == 5) {
+                double leftEyeOPs234 = leftOPsAndMilliSec.get(0).get(1) + leftOPsAndMilliSec.get(0).get(2) + leftOPsAndMilliSec.get(0).get(3);
+                BigDecimal left234Rounded = BigDecimal.valueOf(leftEyeOPs234)
+                        .setScale(2, RoundingMode.HALF_UP);
+                oPsAnalyzeResponse.setLeftEyeOPs234(left234Rounded.doubleValue());
+                oPsAnalyzeResponse.setLeftEyeOPs234MilliSec(0.0);
+
                 double leftEyeOPSSum = leftOPsAndMilliSec.get(0).stream().mapToDouble(Double::doubleValue).sum();
                 BigDecimal leftRounded = BigDecimal.valueOf(leftEyeOPSSum)
                         .setScale(2, RoundingMode.HALF_UP);

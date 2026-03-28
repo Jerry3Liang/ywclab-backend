@@ -1,5 +1,8 @@
 package com.jerryliang.ywclab.service.impl;
 
+import com.jerryliang.ywclab.dto.CWaveDataDto;
+import com.jerryliang.ywclab.dto.CWaveTableToDownloadEntity;
+import com.jerryliang.ywclab.model.CWaveTableEntity;
 import com.jerryliang.ywclab.service.CWaveService;
 import com.jerryliang.ywclab.utils.DatetimeConverter;
 import com.jerryliang.ywclab.utils.ReNameUtil;
@@ -21,8 +24,143 @@ public class CWaveServiceImpl implements CWaveService {
 
     @Value("${YWCLab.data.excelDownload.path}")
     String EXCEL_PATH;
+
     @Override
-    public List<Object> findFilterData1(Sheet sheet) {
+    public List<CWaveTableEntity> newFindFilterData1(Sheet sheet) {
+        List<CWaveTableEntity> CWaveTableDataList1 = new ArrayList<>();
+
+        Integer valueStartIndex = findRowIndexByKeyWord(sheet);
+
+        if(valueStartIndex != null){
+            int index = valueStartIndex;
+
+            CWaveTableEntity CWaveTableDataR1 = new CWaveTableEntity();
+            for(int i = index + 1; i < index + 4; i++){
+                CWaveTableDataR1.setWhichEye("RE");
+                CWaveDataDto cWaveDataDto = new CWaveDataDto();
+                for(int j = 10; j < 13; j++ ){
+                    Object rData1 = findDataByColumnIndex(sheet, i, j, index);
+                    if(j == 10) {
+                        cWaveDataDto.setWaveName((String) rData1);
+                    } else if(j == 11) {
+                        cWaveDataDto.setValue((double) rData1);
+                    } else {
+                        cWaveDataDto.setMilliSeconds((double) rData1);
+                    }
+                }
+
+                if(cWaveDataDto.getWaveName().contains("a")) {
+                    CWaveTableDataR1.setAWave(cWaveDataDto);
+                } else if(cWaveDataDto.getWaveName().contains("b")) {
+                    CWaveTableDataR1.setBWave(cWaveDataDto);
+                } else {
+                    CWaveTableDataR1.setCWave(cWaveDataDto);
+                }
+            }
+
+            CWaveTableDataList1.add(CWaveTableDataR1);
+
+            CWaveTableEntity CWaveTableDataL1 = new CWaveTableEntity();
+            for(int i = index + 4; i < index + 7; i++){
+                CWaveTableDataL1.setWhichEye("LE");
+                CWaveDataDto cWaveDataDto = new CWaveDataDto();
+                for(int j = 10; j < 13; j++ ){
+                    Object rData1 = findDataByColumnIndex(sheet, i, j, index);
+                    if(j == 10) {
+                        cWaveDataDto.setWaveName((String) rData1);
+                    } else if(j == 11) {
+                        cWaveDataDto.setValue((double) rData1);
+                    } else {
+                        cWaveDataDto.setMilliSeconds((double) rData1);
+                    }
+                }
+
+                if(cWaveDataDto.getWaveName().contains("a")) {
+                    CWaveTableDataL1.setAWave(cWaveDataDto);
+                } else if(cWaveDataDto.getWaveName().contains("b")) {
+                    CWaveTableDataL1.setBWave(cWaveDataDto);
+                } else {
+                    CWaveTableDataL1.setCWave(cWaveDataDto);
+                }
+            }
+
+            CWaveTableDataList1.add(CWaveTableDataL1);
+        } else {
+            throw new IllegalArgumentException("找不到對應的值");
+        }
+
+        return CWaveTableDataList1;
+    }
+
+    @Override
+    public List<CWaveTableEntity> newFindFilterData2(Sheet sheet) {
+        List<CWaveTableEntity> CWaveTableDataList2 = new ArrayList<>();
+
+        Integer valueStartIndex = findRowIndexByKeyWord(sheet);
+
+        if(valueStartIndex != null){
+            int index = valueStartIndex;
+
+            CWaveTableEntity CWaveTableDataR2 = new CWaveTableEntity();
+            for(int i = index + 7; i < index + 10; i++){
+                CWaveTableDataR2.setWhichEye("RE");
+                CWaveDataDto cWaveDataDto = new CWaveDataDto();
+                for(int j = 10; j < 13; j++ ){
+                    Object rData1 = findDataByColumnIndex(sheet, i, j, index);
+                    if(j == 10) {
+                        cWaveDataDto.setWaveName((String) rData1);
+                    } else if(j == 11) {
+                        cWaveDataDto.setValue((double) rData1);
+                    } else {
+                        cWaveDataDto.setMilliSeconds((double) rData1);
+                    }
+                }
+
+                if(cWaveDataDto.getWaveName().contains("a")) {
+                    CWaveTableDataR2.setAWave(cWaveDataDto);
+                } else if(cWaveDataDto.getWaveName().contains("b")) {
+                    CWaveTableDataR2.setBWave(cWaveDataDto);
+                } else {
+                    CWaveTableDataR2.setCWave(cWaveDataDto);
+                }
+            }
+
+            CWaveTableDataList2.add(CWaveTableDataR2);
+
+            CWaveTableEntity CWaveTableDataL2 = new CWaveTableEntity();
+            for(int i = index + 10; i < index + 13; i++){
+                CWaveTableDataL2.setWhichEye("LE");
+                CWaveDataDto cWaveDataDto = new CWaveDataDto();
+                for(int j = 10; j < 13; j++ ){
+                    Object rData1 = findDataByColumnIndex(sheet, i, j, index);
+                    if(j == 10) {
+                        cWaveDataDto.setWaveName((String) rData1);
+                    } else if(j == 11) {
+                        cWaveDataDto.setValue((double) rData1);
+                    } else {
+                        cWaveDataDto.setMilliSeconds((double) rData1);
+                    }
+                }
+
+                if(cWaveDataDto.getWaveName().contains("a")) {
+                    CWaveTableDataL2.setAWave(cWaveDataDto);
+                } else if(cWaveDataDto.getWaveName().contains("b")) {
+                    CWaveTableDataL2.setBWave(cWaveDataDto);
+                } else {
+                    CWaveTableDataL2.setCWave(cWaveDataDto);
+                }
+            }
+
+            CWaveTableDataList2.add(CWaveTableDataL2);
+        } else {
+            throw new IllegalArgumentException("找不到對應的值");
+        }
+
+        return CWaveTableDataList2;
+    }
+
+    @Override
+    public List<Object> oldFindFilterData1(Sheet sheet) {
 
         List<Object> CWaveDataList1 = new ArrayList<>();
 
@@ -82,7 +220,7 @@ public class CWaveServiceImpl implements CWaveService {
     }
 
     @Override
-    public List<Object> findFilterData2(Sheet sheet) {
+    public List<Object> oldFindFilterData2(Sheet sheet) {
 
         List<Object> CWaveDataList2 = new ArrayList<>();
 
@@ -224,7 +362,7 @@ public class CWaveServiceImpl implements CWaveService {
     }
 
     @Override
-    public ResponseEntity<byte[]> exportCWaveXlsx(Map<String, List<Object>> cWaveTableDataDownloadRequestMapSet, Map<String, String> expDateMapSet, Map<String, Double> luxDataMapSet) {
+    public ResponseEntity<byte[]> exportCWaveXlsx(Map<String, List<CWaveTableEntity>> cWaveTableDataDownloadRequestMapSet, Map<String, String> expDateMapSet, Map<String, Double> luxDataMapSet) {
 
         //產生當前時間 yyyy年MM月dd日
         String generateTime = DatetimeConverter.getSYSTime(4);
@@ -237,7 +375,8 @@ public class CWaveServiceImpl implements CWaveService {
 
         try {
             //產出Excel檔案
-            XlsxUtil.createCWaveXlsxFile(EXCEL_PATH, header, cWaveTableDataDownloadRequestMapSet, expDateMapSet, luxDataMapSet, "Times New Roman");
+//            XlsxUtil.createCWaveXlsxFile(EXCEL_PATH, header, cWaveTableDataDownloadRequestMapSet, expDateMapSet, luxDataMapSet, "Times New Roman");
+            XlsxUtil.createProductionCWaveXlsxFile(EXCEL_PATH, cWaveTableDataDownloadRequestMapSet);
 
             //轉換為Byte
             return XlsxUtil.parseXlsxFileToByte("C Wave_", generateTime);
@@ -307,7 +446,7 @@ public class CWaveServiceImpl implements CWaveService {
 
             if(row != null) {
                 if(columnIndex == 10){
-                    if (rowIndex >= valueStartIndex + 1 && rowIndex <= valueStartIndex +6) { // 25 to 30 inclusive
+                    if (rowIndex >= valueStartIndex + 1 && rowIndex <= valueStartIndex + 6) { // 25 to 30 inclusive
                         valueCell = row.getCell(columnIndex);
                         value = valueCell + "1";
                         return value;

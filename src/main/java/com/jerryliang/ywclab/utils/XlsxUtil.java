@@ -1,6 +1,9 @@
 package com.jerryliang.ywclab.utils;
 
+import com.jerryliang.ywclab.dto.CWaveDataDto;
+import com.jerryliang.ywclab.dto.CWaveTableToDownloadEntity;
 import com.jerryliang.ywclab.dto.OPsAnalyzeDTO;
+import com.jerryliang.ywclab.model.CWaveTableEntity;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -19,6 +22,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.IntStream;
@@ -35,10 +39,14 @@ public class XlsxUtil {
      */
     public static void createProductionCWaveXlsxFile(
             String path,
-            Map<String, List<Object>> cWaveTableDataDownloadRequestMapSet
+            Map<String, List<CWaveTableEntity>> cWaveTableDataDownloadRequestMapSet
     ) throws IOException {
-
         System.out.println("cWaveTableDataDownloadRequestMapSet : " + cWaveTableDataDownloadRequestMapSet);
+        Map<String, CWaveTableToDownloadEntity> cWaveTableToDownloadEntity =
+                cWaveTableEntityListMapParseToCWaveTableToDownloadEntityListMap(cWaveTableDataDownloadRequestMapSet);
+
+        System.out.println("cWaveTableToDownloadEntity : " + cWaveTableToDownloadEntity);
+
         SXSSFWorkbook workbook = new SXSSFWorkbook(100);
         SXSSFSheet sheet = workbook.createSheet("Result");
 
@@ -46,9 +54,13 @@ public class XlsxUtil {
 
         //設定內容
         List<String> keys = new ArrayList<>(cWaveTableDataDownloadRequestMapSet.keySet());
+        List<String> valueKeys = new ArrayList<>(cWaveTableToDownloadEntity.keySet());
+
+        Collections.sort(valueKeys);
 
         List<String> groupList = keys.stream()
                 .map(key -> key.substring(0, key.indexOf("_"))).distinct().toList();
+        System.out.println("groupList : " + groupList);
 
         int num = 0;
         int groupListCount = 0;
@@ -65,7 +77,7 @@ public class XlsxUtil {
 
             //組別那一 Row
             createStyledCell(workbook, row, 0, "組別：",
-                    "微軟正黑體", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 255, (byte) 255, (byte) 84},
+                    "微軟正黑體", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 84},
                     HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
                     BorderStyle.NONE, BorderStyle.NONE, BorderStyle.NONE, BorderStyle.NONE,
                     true, false, false);
@@ -77,7 +89,7 @@ public class XlsxUtil {
 
             //耳標 (自行填入) 那一 Row
             createStyledCell(workbook, sheet.createRow(i + 1 + num + groupListCount), 0, "耳標(自行填入)",
-                    "微軟正黑體", (short) 12, new byte[] {(byte) 0, (byte) 0, (byte) 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                    "微軟正黑體", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
                     HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
                     BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                     true, false, false);
@@ -86,44 +98,203 @@ public class XlsxUtil {
             Row row2 = sheet.getRow(row2Index);
             int groupMouseCount = 1;
 
-            //先把屬於該 group 的 key 抓出來
-            List<String> groupKeys = keys.stream()
-                    .filter(key -> key.substring(0, key.indexOf("_"))
-                            .equals(processedKey))
-                    .toList();
+            for (int k = 0; k < keys.size(); k += 2) {
+                String comparedKey = keys.get(k).substring(0, keys.get(k).indexOf("_"));
+                if (comparedKey.equals(groupList.get(i))) {
+                    //建立四個欄位
+                    createStyledCell(workbook, row2, groupMouseCount, "",
+                            "Arial", (short) 12, new byte[]{0, 0, 0}, new byte[]{(byte) 128, (byte) 128, (byte) 128},
+                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            true, false, false);
+                    createStyledCell(workbook, row2, groupMouseCount + 1, "",
+                            "Arial", (short) 12, new byte[]{0, 0, 0}, new byte[]{(byte) 128, (byte) 128, (byte) 128},
+                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            true, false, false);
+                    createStyledCell(workbook, row2, groupMouseCount + 2, "",
+                            "Arial", (short) 12, new byte[]{0, 0, 0}, new byte[]{(byte) 128, (byte) 128, (byte) 128},
+                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            true, false, false);
+                    createStyledCell(workbook, row2, groupMouseCount + 3, "",
+                            "Arial", (short) 12, new byte[]{0, 0, 0}, new byte[]{(byte) 128, (byte) 128, (byte) 128},
+                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            true, false, false);
 
-            for (int k = 0; k < groupKeys.size(); k += 4) {
-                //建立兩個欄位
-                createStyledCell(workbook, row2, groupMouseCount, "",
-                        "Arial", (short) 12, new byte[]{(byte) 0, (byte) 0, (byte) 0}, new byte[]{(byte) 128, (byte) 128, (byte) 128},
-                        HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
-                        BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
-                        true, false, false);
-                createStyledCell(workbook, row2, groupMouseCount + 1, "",
-                        "Arial", (short) 12, new byte[]{(byte) 0, (byte) 0, (byte) 0}, new byte[]{(byte) 128, (byte) 128, (byte) 128},
-                        HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
-                        BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
-                        true, false, false);
-                createStyledCell(workbook, row2, groupMouseCount + 2, "",
-                        "Arial", (short) 12, new byte[]{(byte) 0, (byte) 0, (byte) 0}, new byte[]{(byte) 128, (byte) 128, (byte) 128},
-                        HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
-                        BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
-                        true, false, false);
-                createStyledCell(workbook, row2, groupMouseCount + 3, "",
-                        "Arial", (short) 12, new byte[]{(byte) 0, (byte) 0, (byte) 0}, new byte[]{(byte) 128, (byte) 128, (byte) 128},
+                    //merge 兩欄
+                    sheet.addMergedRegion(new CellRangeAddress(
+                            row2Index,
+                            row2Index,
+                            groupMouseCount,
+                            groupMouseCount + 3
+                    ));
+
+                    groupMouseCount += 4;
+                }
+            }
+
+            //流水編號那一 Row
+            createStyledCell(workbook, sheet.createRow(i + 2 + num + groupListCount), 0, "流水編號",
+                    "微軟正黑體", (short) 12, new byte[] {(byte) 255, (byte) 0, (byte) 0}, new byte[] {(byte) 217, (byte) 217, (byte) 217},
+                    HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                    BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                    true, false, false);
+
+            int row3Index = i + 2 + num + groupListCount;
+            Row row3 = sheet.getRow(row3Index);
+            int groupMouseCount1 = 1;
+
+            for (int k = 0; k < valueKeys.size(); k++) {
+                String key = valueKeys.get(k);
+                String comparedKey = key.substring(0, key.indexOf("_"));
+                if (comparedKey.equals(groupList.get(i))) {
+                    createStyledCell(workbook, row3, groupMouseCount1, key + "L",
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[]{(byte) 217, (byte) 217, (byte) 217},
+                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            true, false, false);
+                    createStyledCell(workbook, row3, groupMouseCount1 + 1, key + "L",
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[]{(byte) 217, (byte) 217, (byte) 217},
+                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            true, false, false);
+                    createStyledCell(workbook, row3, groupMouseCount1 + 2, key + "R",
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[]{(byte) 217, (byte) 217, (byte) 217},
+                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            true, false, false);
+                    createStyledCell(workbook, row3, groupMouseCount1 + 3, key + "R",
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[]{(byte) 217, (byte) 217, (byte) 217},
+                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            true, false, false);
+
+                    //merge 兩欄
+                    sheet.addMergedRegion(new CellRangeAddress(
+                            row3Index,
+                            row3Index,
+                            groupMouseCount1,
+                            groupMouseCount1 + 1
+                    ));
+
+                    //merge 兩欄
+                    sheet.addMergedRegion(new CellRangeAddress(
+                            row3Index,
+                            row3Index,
+                            groupMouseCount1 + 2,
+                            groupMouseCount1 + 3
+                    ));
+
+                    groupMouseCount1 += 4;
+                }
+            }
+
+            //(第幾次數值)那一 Row
+            createStyledCell(workbook, sheet.createRow(i + 3 + num + groupListCount), 0, "(第幾次數值)",
+                    "微軟正黑體", (short) 12, new byte[] {(byte) 255, (byte) 0, (byte) 0}, new byte[] {(byte) 217, (byte) 217, (byte) 217},
+                    HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                    BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                    true, false, false);
+
+            int row4Index = i + 3 + num + groupListCount;
+            Row row4 = sheet.getRow(row4Index);
+            int groupMouseCount2 = 1;
+
+            for (int k = 0; k < keys.size(); k += 2) {
+                String key = keys.get(k).substring(0, keys.get(k).indexOf("-"));
+                String comparedKey = key.substring(0, key.indexOf("_"));
+                if (comparedKey.equals(groupList.get(i))) {
+                    createStyledCell(workbook, row4, groupMouseCount2, "(1)",
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[]{(byte) 217, (byte) 217, (byte) 217},
+                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            true, false, false);
+                    createStyledCell(workbook, row4, groupMouseCount2 + 1, "(2)",
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[]{(byte) 217, (byte) 217, (byte) 217},
+                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            true, false, false);
+                    createStyledCell(workbook, row4, groupMouseCount2 + 2, "(1)",
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[]{(byte) 217, (byte) 217, (byte) 217},
+                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            true, false, false);
+                    createStyledCell(workbook, row4, groupMouseCount2 + 3, "(2)",
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[]{(byte) 217, (byte) 217, (byte) 217},
+                            HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            true, false, false);
+
+                    groupMouseCount2 += 4;
+                }
+            }
+
+            //a wave, b wave, c wave 那些 Row
+            int dataStartRowIndex = i + 4 + num + groupListCount;
+
+            String[] waveLabels = {"a wave", "b wave", "c wave"};
+
+            int groupColumnIndex;
+            for (int d = 0; d < waveLabels.length; d++) {
+                Row dataRow = sheet.getRow(dataStartRowIndex + d);
+                if (dataRow == null) {
+                    dataRow = sheet.createRow(dataStartRowIndex + d);
+                }
+
+                //Column 0 --> a wave, b wave, c wave
+                createStyledCell(workbook, dataRow, 0, waveLabels[d],
+                        "Arial", (short) 12, new byte[]{0, 0, 0}, new byte[]{(byte) 255, (byte) 255, (byte) 255},
                         HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
                         BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                         true, false, false);
 
-                //merge 兩欄
-                sheet.addMergedRegion(new CellRangeAddress(
-                        row2Index,
-                        row2Index,
-                        groupMouseCount,
-                        groupMouseCount + 3
-                ));
+                // Column 1~last
+                groupColumnIndex = 1;
 
-                groupMouseCount += 2;
+                for (String valueKey : valueKeys) {
+                    String groupKey = valueKey.substring(0, valueKey.indexOf("_"));
+
+                    if (!groupKey.equals(groupList.get(i))) {
+                        continue;
+                    }
+
+                    CWaveTableToDownloadEntity cWaveTableToExcel = cWaveTableToDownloadEntity.get(valueKey);
+                    List<Double> leftOneValues = cWaveTableToExcel.getLeftOneData();
+                    List<Double> leftTwoValues = cWaveTableToExcel.getLeftTwoData();
+                    List<Double> rightOneValues = cWaveTableToExcel.getRightOneData();
+                    List<Double> rightTwoValues = cWaveTableToExcel.getRightTwoData();
+
+                    double leftOneValue = leftOneValues.get(d);
+                    double leftTwoValue = leftTwoValues.get(d);
+                    double rightOneValue = rightOneValues.get(d);
+                    double rightTwoValue = rightTwoValues.get(d);
+
+                    createStyledCell(workbook, dataRow, groupColumnIndex, leftOneValue == 0 ? "N/A" : leftOneValue,
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                            HorizontalAlignment.RIGHT, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            false, false, false);
+                    createStyledCell(workbook, dataRow, groupColumnIndex + 1, leftTwoValue == 0 ? "N/A" : leftTwoValue,
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                            HorizontalAlignment.RIGHT, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            false, false, false);
+
+                    createStyledCell(workbook, dataRow, groupColumnIndex + 2, rightOneValue == 0 ? "N/A" : rightOneValue,
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                            HorizontalAlignment.RIGHT, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            false, false, false);
+                    createStyledCell(workbook, dataRow, groupColumnIndex + 3, rightTwoValue == 0 ? "N/A" : rightTwoValue,
+                            "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 255, (byte) 255, (byte) 255},
+                            HorizontalAlignment.RIGHT, VerticalAlignment.CENTER,
+                            BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
+                            false, false, false);
+
+                    groupColumnIndex += 4;
+                }
             }
 
             if (i < groupList.size() - 1) {
@@ -139,12 +310,61 @@ public class XlsxUtil {
             groupListCount++;
         }
 
-        Map<Integer, Double> columnWidthMultiplier = new HashMap<>();
-        columnWidthMultiplier.put(2, 4.5); // 第 3 列用 4.5 倍
+        for (int i = 0; i < keys.size(); i++) {
+            sheet.autoSizeColumn(i);
+        }
 
+        int maxCharKeyCount = calculateColumnWidthFactor(valueKeys, "C");
+        Map<Integer, Integer> columnWidthMultiplier = new HashMap<>();
+        columnWidthMultiplier.put(0, 18); // 第 1 列用 3.3 倍
+        for(int i = 1; i <= (valueKeys.size()) * 4; i++) {
+            columnWidthMultiplier.put(i, maxCharKeyCount);
+        }
 
+        adjustColumnWidthForExcel(sheet, columnWidthMultiplier);
 
-        //將 data 寫入 Excel
+        //寫出檔案
+        FileOutputStream fileOut = new FileOutputStream(path + "/C Wave_" + time + ".xlsx");
+        workbook.write(fileOut);
+        workbook.close();
+        fileOut.close();
+    }
+
+    /**
+     * 產製 C Wave xlsx 檔 (非正式)
+     * @param path: 輸出的 Excel 路徑
+     * @param header: 表頭陣列
+     * @param cWaveTableDataDownloadRequestMapSet: 前端傳來的 Data 內容
+     * @param expDateMapSet: 前端傳來的 ExpDate 內容
+     * @param luxDataMapSet: 前端傳來的 LuxData 內容
+     * @param fontName: 字型名稱
+     */
+//    public static void createCWaveXlsxFile(
+//            String path,
+//            List<List<String>> header,
+//            Map<String, List<Object>> cWaveTableDataDownloadRequestMapSet,
+//            Map<String, String> expDateMapSet,
+//            Map<String, Double> luxDataMapSet,
+//            String fontName
+//    ) throws IOException {
+//
+//        SXSSFWorkbook workbook = new SXSSFWorkbook(100);
+//        SXSSFSheet sheet = workbook.createSheet("Result");
+//
+//        Map<Integer, Double> columnWidthMultiplier = new HashMap<>();
+//        columnWidthMultiplier.put(2, 4.5); // 第 3 列用 4.5 倍
+//
+//        createHeaderAndStyleForExcel(header, fontName, workbook, sheet, columnWidthMultiplier);
+//
+//        CellStyle contentStyle = createContentAndStyleForExcel(fontName, workbook);
+//
+//        //設定內容
+//        List<String> keys = new ArrayList<>(cWaveTableDataDownloadRequestMapSet.keySet());
+//        List<String> expDateKeys = new ArrayList<>(expDateMapSet.keySet());
+//        List<String> luxKeys = new ArrayList<>(luxDataMapSet.keySet());
+//        int num = 0;
+//
+//        //將 data 寫入 Excel
 //        for (int i = 0; i < keys.size(); i++) {
 //
 //            String key = keys.get(i);
@@ -195,7 +415,7 @@ public class XlsxUtil {
 //
 //            //只 Merge 奇數
 //            if (i % 2 == 0) {
-//                continue;
+//               continue;
 //            }
 //
 //            if(needMerge){
@@ -204,115 +424,13 @@ public class XlsxUtil {
 //                sheet.addMergedRegion(new CellRangeAddress(i + num, (i + 1) + num, 2, 2));
 //            }
 //        }
-
-        //寫出檔案
-        FileOutputStream fileOut = new FileOutputStream(path + "/C Wave_" + time + ".xlsx");
-        workbook.write(fileOut);
-        workbook.close();
-        fileOut.close();
-    }
-
-    /**
-     * 產製 C Wave xlsx 檔 (非正式)
-     * @param path: 輸出的 Excel 路徑
-     * @param header: 表頭陣列
-     * @param cWaveTableDataDownloadRequestMapSet: 前端傳來的 Data 內容
-     * @param expDateMapSet: 前端傳來的 ExpDate 內容
-     * @param luxDataMapSet: 前端傳來的 LuxData 內容
-     * @param fontName: 字型名稱
-     */
-    public static void createCWaveXlsxFile(
-            String path,
-            List<List<String>> header,
-            Map<String, List<Object>> cWaveTableDataDownloadRequestMapSet,
-            Map<String, String> expDateMapSet,
-            Map<String, Double> luxDataMapSet,
-            String fontName
-    ) throws IOException {
-
-        SXSSFWorkbook workbook = new SXSSFWorkbook(100);
-        SXSSFSheet sheet = workbook.createSheet("Result");
-
-        Map<Integer, Double> columnWidthMultiplier = new HashMap<>();
-        columnWidthMultiplier.put(2, 4.5); // 第 3 列用 4.5 倍
-
-        createHeaderAndStyleForExcel(header, fontName, workbook, sheet, columnWidthMultiplier);
-
-        CellStyle contentStyle = createContentAndStyleForExcel(fontName, workbook);
-
-        //設定內容
-        List<String> keys = new ArrayList<>(cWaveTableDataDownloadRequestMapSet.keySet());
-        List<String> expDateKeys = new ArrayList<>(expDateMapSet.keySet());
-        List<String> luxKeys = new ArrayList<>(luxDataMapSet.keySet());
-        int num = 0;
-
-        //將 data 寫入 Excel
-        for (int i = 0; i < keys.size(); i++) {
-
-            String key = keys.get(i);
-            String processedKey = key;
-
-            String expDateKey = expDateKeys.get(i);
-            String luxDateKey = luxKeys.get(i);
-
-            //處理鍵值對，避免無效操作
-            if (key.contains("_")) {
-                processedKey = key.substring(0, key.indexOf("_"));
-            }
-
-            List<Object> values = cWaveTableDataDownloadRequestMapSet.get(keys.get(i));
-            String expDateValues = expDateMapSet.get(expDateKey);
-            Double luxValues = luxDataMapSet.get(luxDateKey);
-
-            // 建立第二列 (Row)
-            Row row = sheet.createRow(i + 1 + num);
-            createCell(row, 0, keys.get(i).substring(0, keys.get(i).indexOf("-")), contentStyle);
-            createCell(row, 1, luxValues, contentStyle);
-            createCell(row, 2, expDateValues, contentStyle);
-
-            for(int j = 0; j < values.size(); j++){
-                createCell(row, (j + 3), values.get(j), contentStyle);
-            }
-
-            //判斷是否需要 Merge
-            boolean needMerge = true;
-
-            //組別一變就增加兩個 Row
-            if (i < keys.size() - 1) { //確保不超出範圍
-                String keyNext = keys.get(i + 1);
-                if (keyNext.contains("_")) {
-                    keyNext = keyNext.substring(0, keyNext.indexOf("_"));
-                }
-
-                if (!processedKey.equals(keyNext)) {
-                    sheet.addMergedRegion(new CellRangeAddress(i + num, (i + 1) + num, 0, 0));
-                    sheet.addMergedRegion(new CellRangeAddress(i + num, (i + 1) + num, 1, 1));
-                    sheet.addMergedRegion(new CellRangeAddress(i + num, (i + 1) + num, 2, 2));
-                    //只有不同時才增加行索引
-                    num += 2;
-                    //組別變化時不需要 Merge
-                    needMerge = false;
-                }
-            }
-
-            //只 Merge 奇數
-            if (i % 2 == 0) {
-               continue;
-            }
-
-            if(needMerge){
-                sheet.addMergedRegion(new CellRangeAddress(i + num, (i + 1) + num, 0, 0));
-                sheet.addMergedRegion(new CellRangeAddress(i + num, (i + 1) + num, 1, 1));
-                sheet.addMergedRegion(new CellRangeAddress(i + num, (i + 1) + num, 2, 2));
-            }
-        }
-
-        //寫出檔案
-        FileOutputStream fileOut = new FileOutputStream(path + "/C Wave_" + time + ".xlsx");
-        workbook.write(fileOut);
-        workbook.close();
-        fileOut.close();
-    }
+//
+//        //寫出檔案
+//        FileOutputStream fileOut = new FileOutputStream(path + "/C Wave_" + time + ".xlsx");
+//        workbook.write(fileOut);
+//        workbook.close();
+//        fileOut.close();
+//    }
 
     /**
      * 產製老鼠舊編號與新編號對照表
@@ -472,10 +590,10 @@ public class XlsxUtil {
                 groupMouseCount2 += 2;
             }
 
-            //Column 0 OP1~5 Total 那一 Row
+            //Column 0 --> OP1~5 OP2+3+4 Total 那一 Row
             int dataStartRowIndex = i + 3 + num + groupListCount;
 
-            String[] opLabels = {"OP1", "OP2", "OP3", "OP4", "OP5", "Total"};
+            String[] opLabels = {"OP1", "OP2", "OP3", "OP4", "OP5", "OP2+3+4", "Total"};
 
             int groupColumnIndex;
             for (int d = 0; d < opLabels.length; d++) {
@@ -484,13 +602,14 @@ public class XlsxUtil {
                     dataRow = sheet.createRow(dataStartRowIndex + d);
                 }
 
-                //Column 0 OP1~5 OP2+3+4
+                //Column 0 OP1~5 OP2+3+4 Total
                 createStyledCell(workbook, dataRow, 0, opLabels[d],
                         "Arial", (short) 12, new byte[] {0, 0, 0}, new byte[] {(byte) 217, (byte) 217, (byte) 217},
                         HorizontalAlignment.CENTER, VerticalAlignment.CENTER,
                         BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN, BorderStyle.THIN,
                         true, false, false);
 
+                // Column 1~last
                 groupColumnIndex = 1;
 
                 for (String key : keys) {
@@ -503,14 +622,15 @@ public class XlsxUtil {
                     OPsAnalyzeDTO values = opsDataDownloadRequestMapSet.get(key);
 
                     List<Double> valuesR = values.getRightEyeOPsData();
-                    if(valuesR.size() == 5) {
-                        valuesR.add(valuesR.stream().mapToDouble(Double::doubleValue).sum());
-                    }
+
+                    valuesR.add(valuesR.get(1) + valuesR.get(2) + valuesR.get(3));
+                    valuesR.add(valuesR.get(0) + valuesR.get(1) + valuesR.get(2) + valuesR.get(3) + valuesR.get(4));
 
                     List<Double> valuesL = values.getLeftEyeOPsData();
-                    if(valuesL.size() == 5) {
-                        valuesL.add(valuesL.stream().mapToDouble((Double::doubleValue)).sum());
-                    }
+
+                    valuesL.add(valuesL.get(1) + valuesL.get(2) + valuesL.get(3));
+                    valuesL.add(valuesL.get(0) + valuesL.get(1) + valuesL.get(2) + valuesL.get(3) + valuesL.get(4));
+
 
                     double valueL = valuesL.get(d);
                     double valueR = valuesR.get(d);
@@ -535,7 +655,7 @@ public class XlsxUtil {
                 if (!processedKey.equals(keyNext)) {
                     groupListCount = 0;
                     //只有不同時才增加行索引
-                    num += 9;
+                    num += 10;
                     continue;
                 }
             }
@@ -547,10 +667,10 @@ public class XlsxUtil {
             sheet.autoSizeColumn(i);
         }
 
-        int maxCharKeyCount = calculateColumnWidthFactor(keys);
+        int maxCharKeyCount = calculateColumnWidthFactor(keys, "O");
         Map<Integer, Integer> columnWidthMultiplier = new HashMap<>();
         columnWidthMultiplier.put(0, 13); // 第 1 列用 3.3 倍
-        for(int i = 1; i < (keys.size()) * 2; i++) {
+        for(int i = 1; i <= (keys.size()) * 2; i++) {
             columnWidthMultiplier.put(i, maxCharKeyCount);
         }
 
@@ -844,7 +964,7 @@ public class XlsxUtil {
             sheet.autoSizeColumn(i);
         }
 
-        int maxCharKeyCount = calculateColumnWidthFactor(keys);
+        int maxCharKeyCount = calculateColumnWidthFactor(keys, "F");
         Map<Integer, Integer> columnWidthMultiplier = new HashMap<>();
         columnWidthMultiplier.put(0, 13); // 第 1 列用 3.3 倍
         for(int i = 1; i < keys.size(); i++) {
@@ -1126,7 +1246,7 @@ public class XlsxUtil {
             sheet.autoSizeColumn(i);
         }
 
-        int maxCharKeyCount = calculateColumnWidthFactor(keys);
+        int maxCharKeyCount = calculateColumnWidthFactor(keys, "T");
         Map<Integer, Integer> columnWidthMultiplier = new HashMap<>();
         columnWidthMultiplier.put(0, 13); // 第 1 列用 3.3 倍
         for(int i = 1; i < keys.size(); i++) {
@@ -1521,7 +1641,7 @@ public class XlsxUtil {
         //設定HttpHeader
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("application/vnd.ms-excel"));
-        headers.setContentDispositionFormData("attachment", "_" + URLEncoder.encode(generateTime) + ".xlsx");
+        headers.setContentDispositionFormData("attachment", "_" + URLEncoder.encode(generateTime, StandardCharsets.UTF_8) + ".xlsx");
 //        ContentDisposition contentDisposition = ContentDisposition
 //                .attachment()
 //                .filename(excelName)
@@ -1532,7 +1652,7 @@ public class XlsxUtil {
         return new ResponseEntity<>(xlsxFile, headers, HttpStatus.OK);
     }
 
-    public static int calculateColumnWidthFactor(List<String> keys) {
+    public static int calculateColumnWidthFactor(List<String> keys, String experimentType) {
 
         int maxLength = keys.stream()
                 .filter(Objects::nonNull)
@@ -1540,6 +1660,65 @@ public class XlsxUtil {
                 .max()
                 .orElse(0);
 
-        return (int) Math.ceil(maxLength * 1.5);
+        System.out.println("maxLength : " + maxLength);
+
+        return switch (experimentType) {
+            case "C" -> (int) Math.ceil(maxLength * 1.3);
+            case "O" -> (int) Math.ceil(maxLength * 1.8);
+            case "F" -> (int) Math.ceil(maxLength * 1.2);
+            case "T" -> (int) Math.ceil(maxLength * 1.4);
+            default -> 1;
+        };
+    }
+
+    private static Map<String, CWaveTableToDownloadEntity> cWaveTableEntityListMapParseToCWaveTableToDownloadEntityListMap(Map<String, List<CWaveTableEntity>> cWaveTableDataDownloadRequestMapSet) {
+        List<String> keys = new ArrayList<>(cWaveTableDataDownloadRequestMapSet.keySet());
+
+        Map<String, CWaveTableToDownloadEntity> CWaveTableToDownloadEntityMap = new HashMap<>();
+
+        for(String key : keys) {
+            String returnKey = key.substring(0, key.indexOf("-"));
+            CWaveTableToDownloadEntity cWaveTableToDownloadEntity =
+                    CWaveTableToDownloadEntityMap.getOrDefault(returnKey, new CWaveTableToDownloadEntity());
+            List<CWaveTableEntity> cWaveTableEntityList = cWaveTableDataDownloadRequestMapSet.get(key);
+            CWaveDataDto rightAWaveData = cWaveTableEntityList.get(0).getAWave();
+            CWaveDataDto rightBWaveData = cWaveTableEntityList.get(0).getBWave();
+            CWaveDataDto rightCWaveData = cWaveTableEntityList.get(0).getCWave();
+            CWaveDataDto leftAWaveData = cWaveTableEntityList.get(1).getAWave();
+            CWaveDataDto leftBWaveData = cWaveTableEntityList.get(1).getBWave();
+            CWaveDataDto leftCWaveData = cWaveTableEntityList.get(1).getCWave();
+
+            if(Integer.parseInt(key.substring(key.indexOf("-") + 1)) == 1) {
+                List<Double> rightOneData = new ArrayList<>();
+                rightOneData.add(rightAWaveData.getValue());
+                rightOneData.add(rightBWaveData.getValue());
+                rightOneData.add(rightCWaveData.getValue());
+                cWaveTableToDownloadEntity.setRightOneData(rightOneData);
+
+                List<Double> leftOneData = new ArrayList<>();
+                leftOneData.add(leftAWaveData.getValue());
+                leftOneData.add(leftBWaveData.getValue());
+                leftOneData.add(leftCWaveData.getValue());
+                cWaveTableToDownloadEntity.setLeftOneData(leftOneData);
+            }
+
+            if(Integer.parseInt(key.substring(key.indexOf("-") + 1)) == 2) {
+                List<Double> rightTwoData = new ArrayList<>();
+                rightTwoData.add(rightAWaveData.getValue());
+                rightTwoData.add(rightBWaveData.getValue());
+                rightTwoData.add(rightCWaveData.getValue());
+                cWaveTableToDownloadEntity.setRightTwoData(rightTwoData);
+
+                List<Double> leftTwoData = new ArrayList<>();
+                leftTwoData.add(leftAWaveData.getValue());
+                leftTwoData.add(leftBWaveData.getValue());
+                leftTwoData.add(leftCWaveData.getValue());
+                cWaveTableToDownloadEntity.setLeftTwoData(leftTwoData);
+            }
+
+            CWaveTableToDownloadEntityMap.put(returnKey, cWaveTableToDownloadEntity);
+        }
+
+        return CWaveTableToDownloadEntityMap;
     }
 }
