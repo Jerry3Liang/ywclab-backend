@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -142,6 +143,12 @@ public class CWaveController {
             //如果有錯誤，將錯誤訊息返回
             return ResponseEntity.badRequest().body(errors);
         }
+
+        //先英文字順序再數字排序
+        CWaveRawDataList.sort(Comparator
+                .comparing((CWaveResponse c) -> c.getGroupName().split("_")[0])
+                .thenComparingInt(c -> Integer.parseInt(c.getGroupName().split("_")[1]))
+        );
 
         return ResponseEntity.ok(CWaveRawDataList);
     }

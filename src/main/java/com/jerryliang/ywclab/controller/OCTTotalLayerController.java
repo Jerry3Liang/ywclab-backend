@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @CrossOrigin
@@ -73,6 +74,25 @@ public class OCTTotalLayerController {
             // 如果有錯誤，將錯誤訊息返回
             return ResponseEntity.badRequest().body(errors);
         }
+
+        //先英文字順序再數字排序
+        OCTTotalFinalDataList.sort(Comparator
+                // 1️⃣ 先比 prefix
+                .comparing((OCTTotalResponse t) -> t.getGroupName().split("_")[0])
+
+                // 2️⃣ 再比數字
+                .thenComparingInt(t -> {
+                    String part = t.getGroupName().split("_")[1];
+                    String number = part.replaceAll("[^0-9]", ""); // 只留數字
+                    return Integer.parseInt(number);
+                })
+
+                // 3️⃣ 最後比字母（如果有）
+                .thenComparing(t -> {
+                    String part = t.getGroupName().split("_")[1];
+                    return part.replaceAll("[0-9]", "");
+                })
+        );
 
         return ResponseEntity.ok(OCTTotalFinalDataList);
     }

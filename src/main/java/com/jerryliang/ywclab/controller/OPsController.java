@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @CrossOrigin
@@ -103,6 +104,12 @@ public class OPsController {
             // 如果有錯誤，將錯誤訊息返回
             return ResponseEntity.badRequest().body(errors);
         }
+
+        //先英文字順序再數字排序
+        oPsEntityList.sort(Comparator
+                .comparing((OPsEntity o) -> o.getExpGroupName().split("_")[0])
+                .thenComparingInt(o -> Integer.parseInt(o.getExpGroupName().split("_")[1]))
+        );
 
         return ResponseEntity.ok(oPsEntityList);
     }

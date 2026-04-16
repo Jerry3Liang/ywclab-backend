@@ -4,7 +4,6 @@ import com.jerryliang.ywclab.dto.CWaveDataDto;
 import com.jerryliang.ywclab.dto.CWaveTableToDownloadEntity;
 import com.jerryliang.ywclab.dto.OPsAnalyzeDTO;
 import com.jerryliang.ywclab.model.CWaveTableEntity;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
@@ -13,17 +12,15 @@ import org.apache.poi.xssf.usermodel.DefaultIndexedColorMap;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFFont;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.IntStream;
 
@@ -1627,21 +1624,39 @@ public class XlsxUtil {
             String generateTime
     ) throws IOException {
         //轉為絕對路徑防範Path Traversal
-        String excelPath = "/Users/liangchejui/Desktop/DeleteTest/";//Mac pro used
-//        String excelPath = "C:\\YWC Lab Excel DownLoad";//windows used
+        //Mac pro used
+        String excelPath = "/Users/liangchejui/Desktop/DeleteTest/";
+        //windows used
+//        String excelPath = "C:\\YWC Lab Excel DownLoad\\";
         String ipList = expType + DatetimeConverter.getSYSTime(4) + ".xlsx";
-        String excelPathIpList = excelPath + ipList;
+//        String excelPathIpList = excelPath + ipList;
+//        String normalizedPath = FilenameUtils.normalize(excelPathIpList);
+//        File file = new File(normalizedPath);
+        Path path = Paths.get(excelPath, ipList);
+        File file = path.toFile();
 
-        String normalizedPath = FilenameUtils.normalize(excelPathIpList);
-        File file = new File(normalizedPath);
+        if (!file.exists()) {
+            throw new RuntimeException("File not found: " + file.getAbsolutePath());
+        }
 
         //轉換byte
-        byte[] xlsxFile = Files.readAllBytes(file.toPath());
+        byte[] xlsxFile = Files.readAllBytes(path);
 
         //設定HttpHeader
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType("application/vnd.ms-excel"));
-        headers.setContentDispositionFormData("attachment", "_" + URLEncoder.encode(generateTime, StandardCharsets.UTF_8) + ".xlsx");
+        headers.setContentType(
+                MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        );
+
+        headers.setContentDisposition(
+                ContentDisposition.attachment()
+                        .filename(generateTime + ".xlsx", StandardCharsets.UTF_8)
+                        .build()
+        );
+
+        headers.setContentLength(xlsxFile.length);
+//        headers.setContentType(MediaType.parseMediaType("application/vnd.ms-excel"));
+//        headers.setContentDispositionFormData("attachment", "_" + URLEncoder.encode(generateTime, StandardCharsets.UTF_8) + ".xlsx");
 //        ContentDisposition contentDisposition = ContentDisposition
 //                .attachment()
 //                .filename(excelName)
@@ -1665,7 +1680,7 @@ public class XlsxUtil {
         return switch (experimentType) {
             case "C" -> (int) Math.ceil(maxLength * 1.3);
             case "O" -> (int) Math.ceil(maxLength * 1.8);
-            case "F" -> (int) Math.ceil(maxLength * 1.2);
+            case "F" -> (int) Math.ceil(maxLength * 1.5);
             case "T" -> (int) Math.ceil(maxLength * 1.4);
             default -> 1;
         };
