@@ -79,7 +79,8 @@ public class OPsServiceImpl implements OPsService {
 
         //計算 OP1~OP5 的值
         for (int i = 0; i < 5; i++) {
-            double OP = Math.ceil(Math.abs(OPsMaxAndMinStarted[i * 3] - OPsMaxAndMinStarted[i * 3 + 1]) * scale) / scale;
+            double OP = Math.abs(OPsMaxAndMinStarted[i * 3] - OPsMaxAndMinStarted[i * 3 + 1]);
+//            double OP = Math.ceil(Math.abs(OPsMaxAndMinStarted[i * 3] - OPsMaxAndMinStarted[i * 3 + 1]) * scale) / scale;
             OPsDataList.add(OP);
             OPsMilliSecList.add(OPsMaxAndMinStarted[i * 3 + 2]);
         }

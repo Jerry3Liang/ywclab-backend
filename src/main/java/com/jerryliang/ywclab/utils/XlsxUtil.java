@@ -38,14 +38,14 @@ public class XlsxUtil {
             String path,
             Map<String, List<CWaveTableEntity>> cWaveTableDataDownloadRequestMapSet
     ) throws IOException {
-        System.out.println("cWaveTableDataDownloadRequestMapSet : " + cWaveTableDataDownloadRequestMapSet);
+//        System.out.println("cWaveTableDataDownloadRequestMapSet : " + cWaveTableDataDownloadRequestMapSet);
         Map<String, CWaveTableToDownloadEntity> cWaveTableToDownloadEntity =
                 cWaveTableEntityListMapParseToCWaveTableToDownloadEntityListMap(cWaveTableDataDownloadRequestMapSet);
 
-        System.out.println("cWaveTableToDownloadEntity : " + cWaveTableToDownloadEntity);
+//        System.out.println("cWaveTableToDownloadEntity : " + cWaveTableToDownloadEntity);
 
         SXSSFWorkbook workbook = new SXSSFWorkbook(100);
-        SXSSFSheet sheet = workbook.createSheet("Result");
+        SXSSFSheet sheet = workbook.createSheet("C WAVE Result");
 
         sheet.trackAllColumnsForAutoSizing();
 
@@ -57,7 +57,7 @@ public class XlsxUtil {
 
         List<String> groupList = keys.stream()
                 .map(key -> key.substring(0, key.indexOf("_"))).distinct().toList();
-        System.out.println("groupList : " + groupList);
+//        System.out.println("groupList : " + groupList);
 
         int num = 0;
         int groupListCount = 0;
@@ -486,7 +486,7 @@ public class XlsxUtil {
     ) throws IOException {
 
         SXSSFWorkbook workbook = new SXSSFWorkbook(100);
-        SXSSFSheet sheet = workbook.createSheet("Result");
+        SXSSFSheet sheet = workbook.createSheet("OPs Result");
 
         sheet.trackAllColumnsForAutoSizing();
 
@@ -765,7 +765,7 @@ public class XlsxUtil {
     ) throws IOException {
 
         SXSSFWorkbook workbook = new SXSSFWorkbook(100);
-        SXSSFSheet sheet = workbook.createSheet("Result");
+        SXSSFSheet sheet = workbook.createSheet("OCT Four Layer Result");
 
         sheet.trackAllColumnsForAutoSizing();
 
@@ -1086,7 +1086,7 @@ public class XlsxUtil {
     ) throws IOException {
 
         SXSSFWorkbook workbook = new SXSSFWorkbook(100);
-        SXSSFSheet sheet = workbook.createSheet("Result");
+        SXSSFSheet sheet = workbook.createSheet("OCT Total Layer Result");
 
         sheet.trackAllColumnsForAutoSizing();
 
@@ -1625,9 +1625,9 @@ public class XlsxUtil {
     ) throws IOException {
         //轉為絕對路徑防範Path Traversal
         //Mac pro used
-        String excelPath = "/Users/liangchejui/Desktop/DeleteTest/";
+//        String excelPath = "/Users/liangchejui/Desktop/DeleteTest/";
         //windows used
-//        String excelPath = "C:\\YWC Lab Excel DownLoad\\";
+        String excelPath = "C:\\YWC Lab Excel DownLoad\\";
         String ipList = expType + DatetimeConverter.getSYSTime(4) + ".xlsx";
 //        String excelPathIpList = excelPath + ipList;
 //        String normalizedPath = FilenameUtils.normalize(excelPathIpList);

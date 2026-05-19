@@ -24,6 +24,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @CrossOrigin
@@ -146,8 +147,32 @@ public class CWaveController {
 
         //先英文字順序再數字排序
         CWaveRawDataList.sort(Comparator
+                //順序 1. prefix
                 .comparing((CWaveResponse c) -> c.getGroupName().split("_")[0])
-                .thenComparingInt(c -> Integer.parseInt(c.getGroupName().split("_")[1]))
+                //順序 2. 主數字（支援小數）
+                .thenComparingDouble(c -> {
+                    String part = c.getGroupName().split("_")[1];
+                    String number = part.replaceAll("[^0-9.]", ""); // 保留數字 + 小數點
+                    if (number.isEmpty()){
+                        return 0;
+                    }
+
+                    return Double.parseDouble(number);
+                })
+                //順序 3. 字母
+                .thenComparing(c -> {
+                    String part = c.getGroupName().split("_")[1];
+                    return part.replaceAll("[0-9.()]", ""); // 只留字母
+                })
+                //順序 4. 括號內數字
+                .thenComparingInt(c -> {
+                    String part = c.getGroupName();
+                    Matcher m = Pattern.compile("\\((\\d+)\\)").matcher(part);
+                    if (m.find()) {
+                        return Integer.parseInt(m.group(1));
+                    }
+                    return 0;
+                })
         );
 
         return ResponseEntity.ok(CWaveRawDataList);
